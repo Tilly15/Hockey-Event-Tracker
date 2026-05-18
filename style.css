@@ -30,12 +30,13 @@ button {
   border: 3px solid #333;
   border-radius: 80px;
   background:
-    linear-gradient(to right, transparent 49.8%, red 49.8%, red 50.2%, transparent 50.2%),
-    linear-gradient(to right, transparent 24.8%, blue 24.8%, blue 25.2%, transparent 25.2%),
-    linear-gradient(to right, transparent 74.8%, blue 74.8%, blue 75.2%, transparent 75.2%),
-    #f8f8f8;
+  linear-gradient(to right, transparent 49.8%, red 49.8%, red 50.2%, transparent 50.2%),
+  linear-gradient(to right, transparent 37.3%, blue 37.3%, blue 37.7%, transparent 37.7%),
+  linear-gradient(to right, transparent 62.3%, blue 62.3%, blue 62.7%, transparent 62.7%),
+  #f8f8f8;
   margin-bottom: 16px;
   cursor: crosshair;
+  overflow: hidden;
 }
 
 #dot {
@@ -59,4 +60,142 @@ td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
+}
+
+.faceoff-circle,
+.center-circle {
+  position: absolute;
+  width: 120px;   /* 30 ft out of 200 ft rink = 15% of 800px */
+  height: 120px;
+  border: 3px solid red;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.center-circle {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.left-zone.top {
+  left: 15.5%;   /* x = -69 */
+  top: 24.1%;    /* y = +22 */
+  transform: translate(-50%, -50%);
+}
+
+.left-zone.bottom {
+  left: 15.5%;
+  top: 75.9%;    /* y = -22 */
+  transform: translate(-50%, -50%);
+}
+
+.right-zone.top {
+  left: 84.5%;   /* x = +69 */
+  top: 24.1%;
+  transform: translate(-50%, -50%);
+}
+
+.right-zone.bottom {
+  left: 84.5%;
+  top: 75.9%;
+  transform: translate(-50%, -50%);
+}
+
+.crease {
+  position: absolute;
+  width: 24px;
+  height: 48px;
+  border: 3px solid blue;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.left-crease {
+  left: 5.5%;
+  transform: translateY(-50%);
+  border-radius: 0 40px 40px 0;
+  border-left: none;
+}
+
+.right-crease {
+  left: auto;
+  right: 5.5%;
+  transform: translateY(-50%);
+  border-radius: 40px 0 0 40px;
+  border-right: none;
+}
+
+.goal-line {
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  background-color: red;
+}
+
+.left-goal-line {
+  left: 5.5%;
+}
+
+.right-goal-line {
+  left: 94.5%;
+}
+
+.faceoff-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.left-top-dot {
+  left: 15.5%;
+  top: 24.1%;
+}
+
+.left-bottom-dot {
+  left: 15.5%;
+  top: 75.9%;
+}
+
+.right-top-dot {
+  left: 84.5%;
+  top: 24.1%;
+}
+
+.right-bottom-dot {
+  left: 84.5%;
+  top: 75.9%;
+}
+
+.neutral-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.left-top-neutral {
+  left: 40.5%;
+  top: 24.1%;
+}
+
+.left-bottom-neutral {
+  left: 40.5%;
+  top: 75.9%;
+}
+
+.right-top-neutral {
+  left: 59.5%;
+  top: 24.1%;
+}
+
+.right-bottom-neutral {
+  left: 59.5%;
+  top: 75.9%;
 }

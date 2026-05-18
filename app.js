@@ -4,8 +4,12 @@ const coordsDisplay = document.getElementById("coords");
 const eventTable = document.getElementById("eventTable");
 const exportBtn = document.getElementById("exportBtn");
 const clearBtn = document.getElementById("clearBtn");
+const logBtn = document.getElementById("logBtn");
+const deleteLastBtn = document.getElementById("deleteLastBtn");
 
+let selectedLocation = null;
 let events = [];
+
 
 function getFormValues() {
   return {
@@ -14,6 +18,10 @@ function getFormValues() {
     time: document.getElementById("time").value,
     player: document.getElementById("player").value,
     eventType: document.getElementById("eventType").value,
+    shotAssist: document.getElementById("shotAssist").value,
+    playersOnIce: document.getElementById("playersOnIce").value,
+    shotAgainstPlayers: document.getElementById("shotAgainstPlayers").value,
+    ledToShot: document.getElementById("ledToShot").value,
   };
 }
 
@@ -33,15 +41,19 @@ function renderEvents() {
   events.forEach((event) => {
     const row = document.createElement("tr");
 
-    row.innerHTML = `
-      <td>${event.gameId}</td>
-      <td>${event.period}</td>
-      <td>${event.time}</td>
-      <td>${event.player}</td>
-      <td>${event.eventType}</td>
-      <td>${event.x}</td>
-      <td>${event.y}</td>
-    `;
+row.innerHTML = `
+  <td>${event.gameId}</td>
+  <td>${event.period}</td>
+  <td>${event.time}</td>
+  <td>${event.player}</td>
+  <td>${event.eventType}</td>
+  <td>${event.x}</td>
+  <td>${event.y}</td>
+  <td>${event.shotAssist}</td>
+  <td>${event.playersOnIce}</td>
+  <td>${event.shotAgainstPlayers}</td>
+  <td>${event.ledToShot}</td>
+`;
 
     eventTable.appendChild(row);
   });
@@ -53,27 +65,30 @@ rink.addEventListener("click", (event) => {
   const clickY = event.clientY - rect.top;
 
   const { x, y } = pixelToRinkCoordinates(clickX, clickY, rect.width, rect.height);
-  const formValues = getFormValues();
 
-  const loggedEvent = {
-    ...formValues,
-    x,
-    y,
-  };
-
-  events.push(loggedEvent);
+  selectedLocation = { x, y, clickX, clickY };
 
   dot.style.left = `${clickX}px`;
   dot.style.top = `${clickY}px`;
   dot.style.display = "block";
 
-  coordsDisplay.textContent = `Coordinates: (${x}, ${y})`;
-
-  renderEvents();
+  coordsDisplay.textContent = `Selected Coordinates: (${x}, ${y})`;
 });
 
 exportBtn.addEventListener("click", () => {
-  const headers = ["gameId", "period", "time", "player", "eventType", "x", "y"];
+const headers = [
+  "gameId",
+  "period",
+  "time",
+  "player",
+  "eventType",
+  "x",
+  "y",
+  "shotAssist",
+  "playersOnIce",
+  "shotAgainstPlayers",
+  "ledToShot",
+];
 
   const csvRows = [
     headers.join(","),
@@ -98,5 +113,33 @@ clearBtn.addEventListener("click", () => {
   events = [];
   dot.style.display = "none";
   coordsDisplay.textContent = "Coordinates: none";
+  renderEvents();
+});
+
+logBtn.addEventListener("click", () => {
+  if (!selectedLocation) {
+    alert("Please click a location on the rink first.");
+    return;
+  }
+
+  const formValues = getFormValues();
+
+  const loggedEvent = {
+    ...formValues,
+    x: selectedLocation.x,
+    y: selectedLocation.y,
+  };
+
+  events.push(loggedEvent);
+  renderEvents();
+});
+
+  deleteLastBtn.addEventListener("click", () => {
+  if (events.length === 0) {
+    alert("No events to delete.");
+    return;
+  }
+  events.pop();
+
   renderEvents();
 });

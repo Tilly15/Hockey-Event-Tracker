@@ -34,25 +34,83 @@
       Player:
       <input id="player" type="text" placeholder="#19" />
     </label>
+    <label>
+  Shot Assist:
+  <input id="shotAssist" type="text" placeholder="#12" />
+</label>
+
+<label>
+  Players On Ice:
+  <input id="playersOnIce" type="text" placeholder="#8, #12, #19, #22, #31" />
+</label>
+
+<label>
+  Opponent Shot - Our Players On Ice:
+  <input id="shotAgainstPlayers" type="text" placeholder="#8, #12, #19, #22, #31" />
+</label>
+
+<label>
+  Led To Shot?
+  <select id="ledToShot">
+    <option value="">N/A</option>
+    <option value="yes">Yes</option>
+    <option value="no">No</option>
+  </select>
+</label>
 
     <label>
       Event:
       <select id="eventType">
-        <option value="shot">Shot</option>
-        <option value="goal">Goal</option>
-      </select>
+  <option value="shot">Shot</option>
+  <option value="opponent_shot">Opponent Shot</option>
+  <option value="zone_entry">Zone Entry</option>
+  <option value="zone_exit">Zone Exit</option>
+  <option value="goal">Goal</option>
+</select>
     </label>
   </section>
 
   <p>Click the rink to log the event location.</p>
   <p id="coords">Coordinates: none</p>
 
-  <div id="rink">
-    <div id="dot"></div>
-  </div>
+<div id="rink">
+  <!-- Goal lines -->
+  <div class="goal-line left-goal-line"></div>
+  <div class="goal-line right-goal-line"></div>
 
-  <button id="exportBtn">Export CSV</button>
-  <button id="clearBtn">Clear Events</button>
+  <!-- Faceoff circles -->
+  <div class="faceoff-circle left-zone top"></div>
+  <div class="faceoff-circle left-zone bottom"></div>
+  <div class="faceoff-circle right-zone top"></div>
+  <div class="faceoff-circle right-zone bottom"></div>
+
+  <!-- Faceoff dots -->
+  <div class="faceoff-dot left-top-dot"></div>
+  <div class="faceoff-dot left-bottom-dot"></div>
+  <div class="faceoff-dot right-top-dot"></div>
+  <div class="faceoff-dot right-bottom-dot"></div>
+
+  <!-- Center circle -->
+  <div class="center-circle"></div>
+
+  <!-- Creases -->
+  <div class="crease left-crease"></div>
+  <div class="crease right-crease"></div>
+
+  <!-- Click marker -->
+  <div id="dot"></div>
+
+  <!-- Neutral Zone Dots -->
+  <div class="neutral-dot left-top-neutral"></div>
+    <div class="neutral-dot left-bottom-neutral"></div>
+    <div class="neutral-dot right-top-neutral"></div>
+    <div class="neutral-dot right-bottom-neutral"></div>
+</div>
+
+<button id="logBtn" type="button">Log Event</button>
+<button id="exportBtn" type="button">Export CSV</button>
+<button id="clearBtn" type="button">Clear Events</button>
+<button id="deleteLastBtn" type="button">Delete Last Event</button>
 
   <h2>Logged Events</h2>
   <table>
@@ -65,6 +123,10 @@
         <th>Event</th>
         <th>X</th>
         <th>Y</th>
+        <th>Shot Assist</th>
+<th>Players On Ice</th>
+<th>Shot Against Players</th>
+<th>Led To Shot</th>
       </tr>
     </thead>
     <tbody id="eventTable"></tbody>
