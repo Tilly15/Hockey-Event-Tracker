@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hockey Event Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Hockey Event Tracker</h1>
+
+  <section class="controls">
+    <label>
+      Game ID:
+      <input id="gameId" type="text" placeholder="2026-10-05-vs-Team" />
+    </label>
+
+    <label>
+      Period:
+      <select id="period">
+        <option value="1">1st</option>
+        <option value="2">2nd</option>
+        <option value="3">3rd</option>
+        <option value="OT">OT</option>
+      </select>
+    </label>
+
+    <label>
+      Time:
+      <input id="time" type="text" placeholder="12:34" />
+    </label>
+
+    <label>
+      Player:
+      <input id="player" type="text" placeholder="#19" />
+    </label>
+
+    <label>
+      Event:
+      <select id="eventType">
+        <option value="shot">Shot</option>
+        <option value="goal">Goal</option>
+      </select>
+    </label>
+  </section>
+
+  <p>Click the rink to log the event location.</p>
+  <p id="coords">Coordinates: none</p>
+
+  <div id="rink">
+    <div id="dot"></div>
+  </div>
+
+  <button id="exportBtn">Export CSV</button>
+  <button id="clearBtn">Clear Events</button>
+
+  <h2>Logged Events</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Game</th>
+        <th>Period</th>
+        <th>Time</th>
+        <th>Player</th>
+        <th>Event</th>
+        <th>X</th>
+        <th>Y</th>
+      </tr>
+    </thead>
+    <tbody id="eventTable"></tbody>
+  </table>
+
+  <script src="app.js"></script>
+</body>
+</html>
