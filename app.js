@@ -6,10 +6,30 @@ const exportBtn = document.getElementById("exportBtn");
 const clearBtn = document.getElementById("clearBtn");
 const logBtn = document.getElementById("logBtn");
 const deleteLastBtn = document.getElementById("deleteLastBtn");
+const videoInput = document.getElementById("videoInput");
+const gameVideo = document.getElementById("gameVideo");
+const back5Btn = document.getElementById("back5Btn");
+const forward5Btn = document.getElementById("forward5Btn");
+const youtubeUrl = document.getElementById("youtubeUrl");
+const loadYoutubeBtn = document.getElementById("loadYoutubeBtn");
 
 let selectedLocation = null;
 let events = [];
 
+let youtubePlayer = null;
+
+const tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.body.appendChild(tag);
+
+function getYouTubeVideoId(url) {
+  const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([^&?/]+)/);
+  return match ? match[1] : url;
+}
+
+window.onYouTubeIframeAPIReady = function () {
+  console.log("YouTube API ready");
+};
 
 function getFormValues() {
   return {
@@ -22,6 +42,8 @@ function getFormValues() {
     playersOnIce: document.getElementById("playersOnIce").value,
     shotAgainstPlayers: document.getElementById("shotAgainstPlayers").value,
     ledToShot: document.getElementById("ledToShot").value,
+    entryExitType: document.getElementById("entryExitType").value,
+    situation: document.getElementById("situation").value,
   };
 }
 
@@ -53,6 +75,9 @@ row.innerHTML = `
   <td>${event.playersOnIce}</td>
   <td>${event.shotAgainstPlayers}</td>
   <td>${event.ledToShot}</td>
+  <td>${event.entryExitType}</td>
+  <td>${event.situation}</td>
+  <td>${event.videoTime}</td>
 `;
 
     eventTable.appendChild(row);
@@ -88,6 +113,9 @@ const headers = [
   "playersOnIce",
   "shotAgainstPlayers",
   "ledToShot",
+  "entryExitType",
+  "situation",
+  "videoTime",
 ];
 
   const csvRows = [
@@ -124,11 +152,15 @@ logBtn.addEventListener("click", () => {
 
   const formValues = getFormValues();
 
-  const loggedEvent = {
-    ...formValues,
-    x: selectedLocation.x,
-    y: selectedLocation.y,
-  };
+const loggedEvent = {
+  ...formValues,
+  x: selectedLocation.x,
+  y: selectedLocation.y,
+  videoTime: youtubePlayer
+  ? Number(youtubePlayer.getCurrentTime().toFixed(2))
+  : document.getElementById("manualVideoTime").value ||
+    Number(gameVideo.currentTime.toFixed(2)),
+};
 
   events.push(loggedEvent);
   renderEvents();
@@ -142,4 +174,35 @@ logBtn.addEventListener("click", () => {
   events.pop();
 
   renderEvents();
+});
+
+videoInput.addEventListener("change", () => {
+  const file = videoInput.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  gameVideo.src = URL.createObjectURL(file);
+});
+
+back5Btn.addEventListener("click", () => {
+  gameVideo.currentTime = Math.max(0, gameVideo.currentTime - 5);
+});
+
+forward5Btn.addEventListener("click", () => {
+  gameVideo.currentTime += 5;
+});
+
+loadYoutubeBtn.addEventListener("click", () => {
+  const videoId = getYouTubeVideoId(youtubeUrl.value);
+
+  youtubePlayer = new YT.Player("youtubePlayer", {
+    height: "450",
+    width: "800",
+    videoId,
+    playerVars: {
+      playsinline: 1,
+    },
+  });
 });

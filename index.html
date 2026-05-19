@@ -6,132 +6,243 @@
   <title>Hockey Event Tracker</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <h1>Hockey Event Tracker</h1>
 
-  <section class="controls">
-    <label>
-      Game ID:
-      <input id="gameId" type="text" placeholder="2026-10-05-vs-Team" />
-    </label>
+  <div class="app-layout">
 
-    <label>
-      Period:
-      <select id="period">
-        <option value="1">1st</option>
-        <option value="2">2nd</option>
-        <option value="3">3rd</option>
-        <option value="OT">OT</option>
-      </select>
-    </label>
+    <!-- LEFT SIDE -->
+    <main class="tracker-panel">
 
-    <label>
-      Time:
-      <input id="time" type="text" placeholder="12:34" />
-    </label>
+      <section class="controls">
 
-    <label>
-      Player:
-      <input id="player" type="text" placeholder="#19" />
-    </label>
-    <label>
-  Shot Assist:
-  <input id="shotAssist" type="text" placeholder="#12" />
-</label>
+        <label>
+          Game ID:
+          <input id="gameId" type="text" placeholder="2026-10-05-vs-Team" />
+        </label>
 
-<label>
-  Players On Ice:
-  <input id="playersOnIce" type="text" placeholder="#8, #12, #19, #22, #31" />
-</label>
+        <label>
+          Period:
+          <select id="period">
+            <option value="1">1st</option>
+            <option value="2">2nd</option>
+            <option value="3">3rd</option>
+            <option value="OT">OT</option>
+          </select>
+        </label>
 
-<label>
-  Opponent Shot - Our Players On Ice:
-  <input id="shotAgainstPlayers" type="text" placeholder="#8, #12, #19, #22, #31" />
-</label>
+        <label>
+          Time:
+          <input id="time" type="text" placeholder="12:34" />
+        </label>
 
-<label>
-  Led To Shot?
-  <select id="ledToShot">
-    <option value="">N/A</option>
-    <option value="yes">Yes</option>
-    <option value="no">No</option>
-  </select>
-</label>
+        <label>
+          Event:
+          <select id="eventType">
+            <option value="shot">Shot</option>
+            <option value="goal">Goal</option>
+            <option value="zone_entry">Zone Entry</option>
+            <option value="zone_exit">Zone Exit</option>
+            <option value="opponent_shot">Opponent Shot</option>
+          </select>
+        </label>
 
-    <label>
-      Event:
-      <select id="eventType">
-  <option value="shot">Shot</option>
-  <option value="opponent_shot">Opponent Shot</option>
-  <option value="zone_entry">Zone Entry</option>
-  <option value="zone_exit">Zone Exit</option>
-  <option value="goal">Goal</option>
-</select>
-    </label>
+        <label>
+          Situation:
+          <select id="situation">
+            <option value="5v5">5v5</option>
+            <option value="5v4">5v4</option>
+            <option value="5v3">5v3</option>
+            <option value="4v4">4v4</option>
+            <option value="4v3">4v3</option>
+            <option value="3v3">3v3</option>
+            <option value="4v5">4v5</option>
+            <option value="3v5">3v5</option>
+            <option value="3v4">3v4</option>
+          </select>
+        </label>
+
+        <label>
+          Player:
+          <input id="player" type="text" placeholder="#19" />
+        </label>
+
+        <label>
+          Shot Assist:
+          <input id="shotAssist" type="text" placeholder="#12" />
+        </label>
+
+        <label>
+          Players On Ice:
+          <input
+            id="playersOnIce"
+            type="text"
+            placeholder="#8, #12, #19, #22, #31"
+          />
+        </label>
+
+        <label>
+          Opponent Shot - Our Players On Ice:
+          <input
+            id="shotAgainstPlayers"
+            type="text"
+            placeholder="#8, #12, #19, #22, #31"
+          />
+        </label>
+
+        <label>
+          Entry/Exit Type:
+          <select id="entryExitType">
+            <option value="">N/A</option>
+            <option value="dump">Dump</option>
+            <option value="pass">Pass</option>
+            <option value="carry">Carry</option>
+            <option value="failed">Failed Entry/Exit</option>
+          </select>
+        </label>
+
+        <label>
+          Led To Shot?
+          <select id="ledToShot">
+            <option value="">N/A</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+      </section>
+
+      <p>Click the rink to log the event location.</p>
+
+      <p id="coords">Coordinates: none</p>
+
+      <!-- RINK -->
+      <div id="rink">
+
+        <div class="goal-line left-goal-line"></div>
+        <div class="goal-line right-goal-line"></div>
+
+        <div class="faceoff-circle left-zone top"></div>
+        <div class="faceoff-circle left-zone bottom"></div>
+
+        <div class="faceoff-circle right-zone top"></div>
+        <div class="faceoff-circle right-zone bottom"></div>
+
+        <div class="faceoff-dot left-top-dot"></div>
+        <div class="faceoff-dot left-bottom-dot"></div>
+
+        <div class="faceoff-dot right-top-dot"></div>
+        <div class="faceoff-dot right-bottom-dot"></div>
+
+        <div class="neutral-dot left-top-neutral"></div>
+        <div class="neutral-dot left-bottom-neutral"></div>
+
+        <div class="neutral-dot right-top-neutral"></div>
+        <div class="neutral-dot right-bottom-neutral"></div>
+
+        <div class="center-circle"></div>
+
+        <div class="crease left-crease"></div>
+        <div class="crease right-crease"></div>
+
+        <div id="dot"></div>
+
+      </div>
+
+      <!-- BUTTONS -->
+      <div class="event-buttons">
+        <button id="logBtn" type="button">Log Event</button>
+
+        <button id="exportBtn" type="button">Export CSV</button>
+
+        <button id="clearBtn" type="button">Clear Events</button>
+
+        <button id="deleteLastBtn" type="button">
+          Delete Last Event
+        </button>
+      </div>
+
+    </main>
+
+    <!-- RIGHT SIDE -->
+    <aside class="video-panel">
+
+      <label>
+        YouTube Embed URL:
+        <input
+          id="youtubeUrl"
+          type="text"
+          placeholder="https://www.youtube.com/embed/VIDEO_ID"
+        />
+      </label>
+
+      <button id="loadYoutubeBtn" type="button">
+        Load YouTube Video
+      </button>
+
+      <div id="youtubePlayer"></div>
+
+      <section class="video-section">
+
+        <label>
+          Upload Game Video:
+          <input id="videoInput" type="file" accept="video/*" />
+        </label>
+
+        <video id="gameVideo" controls></video>
+
+        <div class="video-buttons">
+          <button id="back5Btn" type="button">Back 5s</button>
+
+          <button id="forward5Btn" type="button">
+            Forward 5s
+          </button>
+        </div>
+
+      </section>
+
+    </aside>
+
+  </div>
+
+  <!-- FULL WIDTH TABLE -->
+  <section class="events-section">
+
+    <h2>Logged Events</h2>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Period</th>
+            <th>Time</th>
+            <th>Player</th>
+            <th>Event</th>
+            <th>X</th>
+            <th>Y</th>
+            <th>Shot Assist</th>
+            <th>Players On Ice</th>
+            <th>Shot Against Players</th>
+            <th>Led To Shot</th>
+            <th>Entry/Exit Type</th>
+            <th>Situation</th>
+            <th>Video Time</th>
+          </tr>
+        </thead>
+
+        <tbody id="eventTable"></tbody>
+
+      </table>
+
+    </div>
+
   </section>
 
-  <p>Click the rink to log the event location.</p>
-  <p id="coords">Coordinates: none</p>
-
-<div id="rink">
-  <!-- Goal lines -->
-  <div class="goal-line left-goal-line"></div>
-  <div class="goal-line right-goal-line"></div>
-
-  <!-- Faceoff circles -->
-  <div class="faceoff-circle left-zone top"></div>
-  <div class="faceoff-circle left-zone bottom"></div>
-  <div class="faceoff-circle right-zone top"></div>
-  <div class="faceoff-circle right-zone bottom"></div>
-
-  <!-- Faceoff dots -->
-  <div class="faceoff-dot left-top-dot"></div>
-  <div class="faceoff-dot left-bottom-dot"></div>
-  <div class="faceoff-dot right-top-dot"></div>
-  <div class="faceoff-dot right-bottom-dot"></div>
-
-  <!-- Center circle -->
-  <div class="center-circle"></div>
-
-  <!-- Creases -->
-  <div class="crease left-crease"></div>
-  <div class="crease right-crease"></div>
-
-  <!-- Click marker -->
-  <div id="dot"></div>
-
-  <!-- Neutral Zone Dots -->
-  <div class="neutral-dot left-top-neutral"></div>
-    <div class="neutral-dot left-bottom-neutral"></div>
-    <div class="neutral-dot right-top-neutral"></div>
-    <div class="neutral-dot right-bottom-neutral"></div>
-</div>
-
-<button id="logBtn" type="button">Log Event</button>
-<button id="exportBtn" type="button">Export CSV</button>
-<button id="clearBtn" type="button">Clear Events</button>
-<button id="deleteLastBtn" type="button">Delete Last Event</button>
-
-  <h2>Logged Events</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Game</th>
-        <th>Period</th>
-        <th>Time</th>
-        <th>Player</th>
-        <th>Event</th>
-        <th>X</th>
-        <th>Y</th>
-        <th>Shot Assist</th>
-<th>Players On Ice</th>
-<th>Shot Against Players</th>
-<th>Led To Shot</th>
-      </tr>
-    </thead>
-    <tbody id="eventTable"></tbody>
-  </table>
-
   <script src="app.js"></script>
+
 </body>
 </html>

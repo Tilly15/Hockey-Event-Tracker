@@ -199,3 +199,80 @@ td {
   left: 59.5%;
   top: 75.9%;
 }
+
+.app-layout {
+  display: grid;
+  grid-template-columns: 780px 520px;
+  gap: 24px;
+  align-items: start;
+}
+
+.tracker-panel {
+  min-width: 0;
+}
+
+.video-panel {
+  position: sticky;
+  top: 16px;
+}
+
+#youtubePlayer,
+#gameVideo {
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 16 / 9;
+  margin: 12px 0;
+}
+
+.video-panel input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+table {
+  font-size: 14px;
+}
+
+@media (max-width: 1200px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .video-panel {
+    position: static;
+  }
+}
+
+#rink {
+  width: 100%;
+  max-width: 760px;
+  height: 323px;
+}
+
+.video-panel {
+  min-width: 0;
+  max-width: 520px;
+}
+
+#youtubePlayer,
+#gameVideo {
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 16 / 9;
+}
+
+.events-section {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
