@@ -13,12 +13,12 @@ const forward5Btn = document.getElementById("forward5Btn");
 const youtubeUrl = document.getElementById("youtubeUrl");
 const loadYoutubeBtn = document.getElementById("loadYoutubeBtn");
 const saveGameBtn = document.getElementById("saveGameBtn");
-const loadGameBtn = document.getElementById("loadGameBtn");
 const savedGamesSelect = document.getElementById("savedGamesSelect");
 const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
 
 let selectedLocation = null;
 let events = [];
+let editingIndex = null;
 
 let youtubePlayer = null;
 
@@ -87,6 +87,10 @@ row.innerHTML = `
       Go To
     </button>
   </td>
+
+  <td>
+  <button class="edit-btn" data-index="${index}" type="button">Edit</button>
+</td>
 `;
 
     eventTable.appendChild(row);
@@ -101,6 +105,32 @@ goToBtn.addEventListener("click", () => {
     gameVideo.currentTime = Number(event.videoTime);
     gameVideo.play();
   }
+});
+
+const editBtn = row.querySelector(".edit-btn");
+
+editBtn.addEventListener("click", () => {
+  editingIndex = index;
+
+  document.getElementById("gameId").value = event.gameId;
+  document.getElementById("period").value = event.period;
+  document.getElementById("time").value = event.time;
+  document.getElementById("player").value = event.player;
+  document.getElementById("eventType").value = event.eventType;
+  document.getElementById("shotAssist").value = event.shotAssist;
+  document.getElementById("playersOnIce").value = event.playersOnIce;
+  document.getElementById("shotAgainstPlayers").value = event.shotAgainstPlayers;
+  document.getElementById("ledToShot").value = event.ledToShot;
+  document.getElementById("entryExitType").value = event.entryExitType;
+  document.getElementById("situation").value = event.situation;
+
+  selectedLocation = {
+    x: event.x,
+    y: event.y,
+  };
+
+  coordsDisplay.textContent = `Editing Coordinates: (${event.x}, ${event.y})`;
+  logBtn.textContent = "Update Event";
 });
   });
   
@@ -174,17 +204,28 @@ logBtn.addEventListener("click", () => {
 
   const formValues = getFormValues();
 
-const loggedEvent = {
-  ...formValues,
-  x: selectedLocation.x,
-  y: selectedLocation.y,
-  videoTime: youtubePlayer
-  ? Number(youtubePlayer.getCurrentTime().toFixed(2))
-  : document.getElementById("manualVideoTime").value ||
-    Number(gameVideo.currentTime.toFixed(2)),
-};
+  const currentVideoTime = youtubePlayer
+    ? Number(youtubePlayer.getCurrentTime().toFixed(2))
+    : Number(gameVideo.currentTime.toFixed(2));
 
-  events.push(loggedEvent);
+  const loggedEvent = {
+    ...formValues,
+    x: selectedLocation.x,
+    y: selectedLocation.y,
+    videoTime:
+      editingIndex !== null
+        ? events[editingIndex].videoTime
+        : currentVideoTime,
+  };
+
+  if (editingIndex !== null) {
+    events[editingIndex] = loggedEvent;
+    editingIndex = null;
+    logBtn.textContent = "Log Event";
+  } else {
+    events.push(loggedEvent);
+  }
+
   renderEvents();
 });
 
