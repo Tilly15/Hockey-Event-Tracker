@@ -7,7 +7,11 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
+
+
 <body>
+  <a href="dashboard.html">Open Dashboard</a>
+
   <h1>Hockey Event Tracker</h1>
 
   <div class="app-layout">
@@ -20,6 +24,11 @@
         <label>
           Game ID:
           <input id="gameId" type="text" placeholder="2026-10-05-vs-Team" />
+        </label>
+
+        <label>
+        Season:
+        <input id="seasonId" type="text" placeholder="2026-27" />
         </label>
 
         <label>
@@ -164,6 +173,10 @@
 
         <select id="savedGamesSelect">
   <option value="">Select saved game...</option>
+</select>
+
+        <select id="savedSeasonsSelect">
+  <option value="">Select season...</option>
 </select>
 
 <button id="openSelectedGameBtn" type="button">Open Selected Game</button>

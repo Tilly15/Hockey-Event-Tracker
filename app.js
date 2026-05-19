@@ -17,6 +17,8 @@ const saveGameBtn = document.getElementById("saveGameBtn");
 const savedGamesSelect = document.getElementById("savedGamesSelect");
 const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
 const deleteSavedGameBtn = document.getElementById("deleteSavedGameBtn");
+const seasonIdInput = document.getElementById("seasonId");
+const savedSeasonsSelect = document.getElementById("savedSeasonsSelect");
 
 let selectedLocation = null;
 let events = [];
@@ -31,6 +33,10 @@ document.body.appendChild(tag);
 function getYouTubeVideoId(url) {
   const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([^&?/]+)/);
   return match ? match[1] : url;
+}
+
+function getGameStorageKey(seasonId, gameId) {
+  return `hockey-game-${seasonId}-${gameId}`;
 }
 
 window.onYouTubeIframeAPIReady = function () {
@@ -234,6 +240,7 @@ try {
   currentVideoTime = 0;
 }
   const loggedEvent = {
+    id: crypto.randomUUID(),
     ...formValues,
     x: selectedLocation.x,
     y: selectedLocation.y,
@@ -245,6 +252,7 @@ try {
   };
 
   if (editingIndex !== null) {
+    loggedEvent.id = events[editingIndex].id;
     events[editingIndex] = loggedEvent;
     editingIndex = null;
     logBtn.textContent = "Log Event";
@@ -317,20 +325,31 @@ function saveSavedGames(savedGames) {
 }
 
 function refreshSavedGamesSelect() {
+  const selectedSeason = savedSeasonsSelect.value;
   const savedGames = getSavedGames();
 
   savedGamesSelect.innerHTML = `<option value="">Select saved game...</option>`;
 
-  savedGames.forEach((game) => {
-    const option = document.createElement("option");
-    option.value = game.gameId;
-    option.textContent = game.gameId;
-    savedGamesSelect.appendChild(option);
-  });
+  savedGames
+    .filter((game) => game.seasonId === selectedSeason)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      savedGamesSelect.appendChild(option);
+    });
 }
 
+savedSeasonsSelect.addEventListener("change", refreshSavedGamesSelect);
+
 function saveCurrentGame() {
+  const seasonId = seasonIdInput.value.trim();
   const gameId = document.getElementById("gameId").value.trim();
+
+  if (!seasonId) {
+    alert("Please enter a Season first.");
+    return;
+  }
 
   if (!gameId) {
     alert("Please enter a Game ID first.");
@@ -338,27 +357,36 @@ function saveCurrentGame() {
   }
 
   const gameData = {
+    seasonId,
     gameId,
     youtubeUrls: getYouTubeUrls(),
     events,
   };
 
-  localStorage.setItem(`hockey-game-${gameId}`, JSON.stringify(gameData));
+  localStorage.setItem(
+    getGameStorageKey(seasonId, gameId),
+    JSON.stringify(gameData)
+  );
 
   const savedGames = getSavedGames();
-  const alreadyExists = savedGames.some((game) => game.gameId === gameId);
+
+  const alreadyExists = savedGames.some(
+    (game) => game.seasonId === seasonId && game.gameId === gameId
+  );
 
   if (!alreadyExists) {
-    savedGames.push({ gameId });
+    savedGames.push({ seasonId, gameId });
     saveSavedGames(savedGames);
   }
 
+  refreshSavedSeasonsSelect();
   refreshSavedGamesSelect();
+
   alert("Game saved.");
 }
 
-function openGame(gameId) {
-  const savedGame = localStorage.getItem(`hockey-game-${gameId}`);
+function openGame(seasonId, gameId) {
+  const savedGame = localStorage.getItem(getGameStorageKey(seasonId, gameId));
 
   if (!savedGame) {
     alert("Saved game not found.");
@@ -402,14 +430,15 @@ function loadYouTubeVideo(url) {
 saveGameBtn.addEventListener("click", saveCurrentGame);
 
 openSelectedGameBtn.addEventListener("click", () => {
+  const selectedSeasonId = savedSeasonsSelect.value;
   const selectedGameId = savedGamesSelect.value;
 
-  if (!selectedGameId) {
-    alert("Please select a saved game first.");
+  if (!selectedSeasonId || !selectedGameId) {
+    alert("Please select a season and game first.");
     return;
   }
 
-  openGame(selectedGameId);
+  openGame(selectedSeasonId, selectedGameId);
 });
 
 deleteSavedGameBtn.addEventListener("click", () => {
@@ -438,8 +467,6 @@ deleteSavedGameBtn.addEventListener("click", () => {
   alert("Saved game deleted.");
 });
 
-refreshSavedGamesSelect();
-
 function getYouTubeUrls() {
   return youtubeUrls.value
     .split("\n")
@@ -459,3 +486,20 @@ function refreshVideoSelect() {
     videoSelect.appendChild(option);
   });
 }
+
+function refreshSavedSeasonsSelect() {
+  const savedGames = getSavedGames();
+  const seasons = [...new Set(savedGames.map((game) => game.seasonId))];
+
+  savedSeasonsSelect.innerHTML = `<option value="">Select season...</option>`;
+
+  seasons.forEach((seasonId) => {
+    const option = document.createElement("option");
+    option.value = seasonId;
+    option.textContent = seasonId;
+    savedSeasonsSelect.appendChild(option);
+  });
+}
+
+refreshSavedSeasonsSelect();
+refreshSavedGamesSelect();

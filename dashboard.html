@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hockey Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <h1>Hockey Analytics Dashboard</h1>
+
+  <a href="index.html">Back to Logger</a>
+
+  <section>
+    <label>
+      Season:
+      <select id="seasonSelect"></select>
+    </label>
+
+    <label>
+      Game:
+      <select id="gameSelect"></select>
+    </label>
+
+    <button id="loadDashboardBtn" type="button">Load Dashboard</button>
+  </section>
+
+  <section id="summary">
+    <h2>Summary</h2>
+    <p>Select a season and game to view stats.</p>
+  </section>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
