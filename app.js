@@ -10,11 +10,13 @@ const videoInput = document.getElementById("videoInput");
 const gameVideo = document.getElementById("gameVideo");
 const back5Btn = document.getElementById("back5Btn");
 const forward5Btn = document.getElementById("forward5Btn");
-const youtubeUrl = document.getElementById("youtubeUrl");
+const youtubeUrls = document.getElementById("youtubeUrls");
+const videoSelect = document.getElementById("videoSelect");
 const loadYoutubeBtn = document.getElementById("loadYoutubeBtn");
 const saveGameBtn = document.getElementById("saveGameBtn");
 const savedGamesSelect = document.getElementById("savedGamesSelect");
 const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
+const deleteSavedGameBtn = document.getElementById("deleteSavedGameBtn");
 
 let selectedLocation = null;
 let events = [];
@@ -98,9 +100,18 @@ row.innerHTML = `
     const goToBtn = row.querySelector(".goto-btn");
 
 goToBtn.addEventListener("click", () => {
-  if (youtubePlayer && event.videoTime) {
-    youtubePlayer.seekTo(Number(event.videoTime), true);
-    youtubePlayer.playVideo();
+  const urls = getYouTubeUrls();
+  const eventVideoIndex = Number(event.videoIndex || 0);
+  const eventVideoUrl = urls[eventVideoIndex];
+
+  if (eventVideoUrl) {
+    videoSelect.value = String(eventVideoIndex);
+    loadYouTubeVideo(eventVideoUrl);
+
+    setTimeout(() => {
+      youtubePlayer.seekTo(Number(event.videoTime), true);
+      youtubePlayer.playVideo();
+    }, 1000);
   } else if (gameVideo && event.videoTime) {
     gameVideo.currentTime = Number(event.videoTime);
     gameVideo.play();
@@ -204,14 +215,29 @@ logBtn.addEventListener("click", () => {
 
   const formValues = getFormValues();
 
-  const currentVideoTime = youtubePlayer
-    ? Number(youtubePlayer.getCurrentTime().toFixed(2))
-    : Number(gameVideo.currentTime.toFixed(2));
+  let currentVideoTime = 0;
 
+try {
+  if (
+    youtubePlayer &&
+    typeof youtubePlayer.getCurrentTime === "function"
+  ) {
+    currentVideoTime = Number(
+      youtubePlayer.getCurrentTime().toFixed(2)
+    );
+  } else if (gameVideo) {
+    currentVideoTime = Number(
+      gameVideo.currentTime.toFixed(2)
+    );
+  }
+} catch (error) {
+  currentVideoTime = 0;
+}
   const loggedEvent = {
     ...formValues,
     x: selectedLocation.x,
     y: selectedLocation.y,
+    videoIndex: Number(videoSelect.value || 0),
     videoTime:
       editingIndex !== null
         ? events[editingIndex].videoTime
@@ -258,7 +284,28 @@ forward5Btn.addEventListener("click", () => {
 });
 
 loadYoutubeBtn.addEventListener("click", () => {
-  loadYouTubeVideo(youtubeUrl.value);
+  refreshVideoSelect();
+
+  const urls = getYouTubeUrls();
+  const selectedIndex = Number(videoSelect.value || 0);
+
+  if (!urls[selectedIndex]) {
+    alert("Please add at least one YouTube URL.");
+    return;
+  }
+
+  loadYouTubeVideo(urls[selectedIndex]);
+});
+
+videoSelect.addEventListener("change", () => {
+  const urls = getYouTubeUrls();
+  const selectedIndex = Number(videoSelect.value);
+
+  if (!urls[selectedIndex]) {
+    return;
+  }
+
+  loadYouTubeVideo(urls[selectedIndex]);
 });
 
 function getSavedGames() {
@@ -292,7 +339,7 @@ function saveCurrentGame() {
 
   const gameData = {
     gameId,
-    youtubeUrl: youtubeUrl.value,
+    youtubeUrls: getYouTubeUrls(),
     events,
   };
 
@@ -321,20 +368,29 @@ function openGame(gameId) {
   const gameData = JSON.parse(savedGame);
 
   document.getElementById("gameId").value = gameData.gameId;
-  youtubeUrl.value = gameData.youtubeUrl || "";
+  youtubeUrls.value = (gameData.youtubeUrls || []).join("\n");
+  refreshVideoSelect();
   events = gameData.events || [];
 
   renderEvents();
 
-  if (gameData.youtubeUrl) {
-    loadYouTubeVideo(gameData.youtubeUrl);
-  }
+  const urls = getYouTubeUrls();
+
+if (urls.length > 0) {
+  videoSelect.value = "0";
+  loadYouTubeVideo(urls[0]);
+}
 
   alert("Game loaded.");
 }
 
 function loadYouTubeVideo(url) {
   const videoId = getYouTubeVideoId(url);
+
+  if (youtubePlayer && typeof youtubePlayer.loadVideoById === "function") {
+    youtubePlayer.loadVideoById(videoId);
+    return;
+  }
 
   youtubePlayer = new YT.Player("youtubePlayer", {
     height: "450",
@@ -356,4 +412,50 @@ openSelectedGameBtn.addEventListener("click", () => {
   openGame(selectedGameId);
 });
 
+deleteSavedGameBtn.addEventListener("click", () => {
+  const selectedGameId = savedGamesSelect.value;
+
+  if (!selectedGameId) {
+    alert("Please select a saved game to delete.");
+    return;
+  }
+
+  const confirmDelete = confirm(`Delete saved game "${selectedGameId}"?`);
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  localStorage.removeItem(`hockey-game-${selectedGameId}`);
+
+  const updatedSavedGames = getSavedGames().filter(
+    (game) => game.gameId !== selectedGameId
+  );
+
+  saveSavedGames(updatedSavedGames);
+  refreshSavedGamesSelect();
+
+  alert("Saved game deleted.");
+});
+
 refreshSavedGamesSelect();
+
+function getYouTubeUrls() {
+  return youtubeUrls.value
+    .split("\n")
+    .map((url) => url.trim())
+    .filter((url) => url !== "");
+}
+
+function refreshVideoSelect() {
+  const urls = getYouTubeUrls();
+
+  videoSelect.innerHTML = "";
+
+  urls.forEach((url, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = `Video ${index + 1}`;
+    videoSelect.appendChild(option);
+  });
+}

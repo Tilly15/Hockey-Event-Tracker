@@ -168,6 +168,8 @@
 
 <button id="openSelectedGameBtn" type="button">Open Selected Game</button>
 
+<button id="deleteSavedGameBtn" type="button">Delete Saved Game</button>
+
       </div>
 
     </main>
@@ -176,17 +178,22 @@
     <aside class="video-panel">
 
       <label>
-        YouTube Embed URL:
-        <input
-          id="youtubeUrl"
-          type="text"
-          placeholder="https://www.youtube.com/embed/VIDEO_ID"
-        />
-      </label>
+  YouTube URLs:
+  <textarea
+    id="youtubeUrls"
+    placeholder="Paste one YouTube URL per line"
+    rows="4"
+  ></textarea>
+</label>
 
-      <button id="loadYoutubeBtn" type="button">
-        Load YouTube Video
-      </button>
+<label>
+  Active Video:
+  <select id="videoSelect">
+    <option value="0">Video 1</option>
+  </select>
+</label>
+
+<button id="loadYoutubeBtn" type="button">Load Selected Video</button>
 
       <div id="youtubePlayer"></div>
 
