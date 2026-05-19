@@ -12,6 +12,10 @@ const back5Btn = document.getElementById("back5Btn");
 const forward5Btn = document.getElementById("forward5Btn");
 const youtubeUrl = document.getElementById("youtubeUrl");
 const loadYoutubeBtn = document.getElementById("loadYoutubeBtn");
+const saveGameBtn = document.getElementById("saveGameBtn");
+const loadGameBtn = document.getElementById("loadGameBtn");
+const savedGamesSelect = document.getElementById("savedGamesSelect");
+const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
 
 let selectedLocation = null;
 let events = [];
@@ -60,7 +64,7 @@ function pixelToRinkCoordinates(clickX, clickY, width, height) {
 function renderEvents() {
   eventTable.innerHTML = "";
 
-  events.forEach((event) => {
+  events.forEach((event, index) => {
     const row = document.createElement("tr");
 
 row.innerHTML = `
@@ -78,10 +82,28 @@ row.innerHTML = `
   <td>${event.entryExitType}</td>
   <td>${event.situation}</td>
   <td>${event.videoTime}</td>
+  <td>
+    <button class="goto-btn" data-index="${index}">
+      Go To
+    </button>
+  </td>
 `;
 
     eventTable.appendChild(row);
+
+    const goToBtn = row.querySelector(".goto-btn");
+
+goToBtn.addEventListener("click", () => {
+  if (youtubePlayer && event.videoTime) {
+    youtubePlayer.seekTo(Number(event.videoTime), true);
+    youtubePlayer.playVideo();
+  } else if (gameVideo && event.videoTime) {
+    gameVideo.currentTime = Number(event.videoTime);
+    gameVideo.play();
+  }
+});
   });
+  
 }
 
 rink.addEventListener("click", (event) => {
@@ -195,14 +217,102 @@ forward5Btn.addEventListener("click", () => {
 });
 
 loadYoutubeBtn.addEventListener("click", () => {
-  const videoId = getYouTubeVideoId(youtubeUrl.value);
+  loadYouTubeVideo(youtubeUrl.value);
+});
+
+function getSavedGames() {
+  return JSON.parse(localStorage.getItem("savedGames") || "[]");
+}
+
+function saveSavedGames(savedGames) {
+  localStorage.setItem("savedGames", JSON.stringify(savedGames));
+}
+
+function refreshSavedGamesSelect() {
+  const savedGames = getSavedGames();
+
+  savedGamesSelect.innerHTML = `<option value="">Select saved game...</option>`;
+
+  savedGames.forEach((game) => {
+    const option = document.createElement("option");
+    option.value = game.gameId;
+    option.textContent = game.gameId;
+    savedGamesSelect.appendChild(option);
+  });
+}
+
+function saveCurrentGame() {
+  const gameId = document.getElementById("gameId").value.trim();
+
+  if (!gameId) {
+    alert("Please enter a Game ID first.");
+    return;
+  }
+
+  const gameData = {
+    gameId,
+    youtubeUrl: youtubeUrl.value,
+    events,
+  };
+
+  localStorage.setItem(`hockey-game-${gameId}`, JSON.stringify(gameData));
+
+  const savedGames = getSavedGames();
+  const alreadyExists = savedGames.some((game) => game.gameId === gameId);
+
+  if (!alreadyExists) {
+    savedGames.push({ gameId });
+    saveSavedGames(savedGames);
+  }
+
+  refreshSavedGamesSelect();
+  alert("Game saved.");
+}
+
+function openGame(gameId) {
+  const savedGame = localStorage.getItem(`hockey-game-${gameId}`);
+
+  if (!savedGame) {
+    alert("Saved game not found.");
+    return;
+  }
+
+  const gameData = JSON.parse(savedGame);
+
+  document.getElementById("gameId").value = gameData.gameId;
+  youtubeUrl.value = gameData.youtubeUrl || "";
+  events = gameData.events || [];
+
+  renderEvents();
+
+  if (gameData.youtubeUrl) {
+    loadYouTubeVideo(gameData.youtubeUrl);
+  }
+
+  alert("Game loaded.");
+}
+
+function loadYouTubeVideo(url) {
+  const videoId = getYouTubeVideoId(url);
 
   youtubePlayer = new YT.Player("youtubePlayer", {
     height: "450",
     width: "800",
     videoId,
-    playerVars: {
-      playsinline: 1,
-    },
   });
+}
+
+saveGameBtn.addEventListener("click", saveCurrentGame);
+
+openSelectedGameBtn.addEventListener("click", () => {
+  const selectedGameId = savedGamesSelect.value;
+
+  if (!selectedGameId) {
+    alert("Please select a saved game first.");
+    return;
+  }
+
+  openGame(selectedGameId);
 });
+
+refreshSavedGamesSelect();
