@@ -54,6 +54,10 @@
             <option value="zone_entry">Zone Entry</option>
             <option value="zone_exit">Zone Exit</option>
             <option value="opponent_shot">Opponent Shot</option>
+            <option value="opponent_goal">Opponent Goal</option>
+            <option value="penalty">Penalty</option>
+            <option value="drawn_penalty">Drawn Penalty</option>
+
           </select>
         </label>
 
@@ -69,6 +73,12 @@
             <option value="4v5">4v5</option>
             <option value="3v5">3v5</option>
             <option value="3v4">3v4</option>
+            <option value="6v5">6v5</option>
+            <option value="6v4">6v4</option>
+            <option value="6v3">6v3</option>
+            <option value="5v6">5v6</option>
+            <option value="4v6">4v6</option>
+            <option value="3v6">3v6</option>
           </select>
         </label>
 
@@ -119,6 +129,16 @@
             <option value="no">No</option>
           </select>
         </label>
+
+        <label>
+  Primary Assist:
+  <input id="primaryAssist" type="text" placeholder="#12" />
+</label>
+
+<label>
+  Secondary Assist:
+  <input id="secondaryAssist" type="text" placeholder="#22" />
+</label>
 
       </section>
 
@@ -258,6 +278,8 @@
             <th>Entry/Exit Type</th>
             <th>Situation</th>
             <th>Video Time</th>
+            <th>Primary Assist</th>
+            <th>Secondary Assist</th>
             <th>Go To</th>
             <th>Edit</th>
           </tr>

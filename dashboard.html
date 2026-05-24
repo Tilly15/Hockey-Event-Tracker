@@ -30,6 +30,71 @@
     <p>Select a season and game to view stats.</p>
   </section>
 
+  <section>
+  <h2>Season Roster</h2>
+
+  <label>
+    Player Number:
+    <input id="rosterNumber" type="text" placeholder="8" />
+  </label>
+
+  <label>
+    Player Name:
+    <input id="rosterName" type="text" placeholder="John Smith" />
+  </label>
+
+  <button id="addRosterPlayerBtn" type="button">Add Player</button>
+
+  <div id="rosterList"></div>
+</section>
+
+  <section>
+  <h2>Player Totals</h2>
+  <div id="playerTotals"></div>
+</section>
+
+<label>
+  Situation:
+  <select id="situationFilter">
+    <option value="all">All Situations</option>
+    <option value="even">Even Strength</option>
+    <option value="powerplay">Power Play</option>
+    <option value="shorthanded">Shorthanded</option>
+    <option value="5v5">5v5</option>
+    <option value="4v4">4v4</option>
+    <option value="3v3">3v3</option>
+    <option value="5v4">5v4</option>
+    <option value="5v3">5v3</option>
+    <option value="4v3">4v3</option>
+    <option value="6v5">6v5</option>
+    <option value="6v4">6v4</option>
+    <option value="6v3">6v3</option>
+    <option value="4v5">4v5</option>
+    <option value="3v5">3v5</option>
+    <option value="3v4">3v4</option>
+    <option value="5v6">5v6</option>
+    <option value="4v6">4v6</option>
+    <option value="3v6">3v6</option>
+  </select>
+
+
+</label>
+
+
+
+<section>
+  <h2>Season Player Cards</h2>
+  <button id="loadSeasonCardsBtn" type="button">Load Season Cards</button>
+  <div id="playerCards"></div>
+</section>
+
+<label>
+  Player:
+  <select id="seasonCardPlayerSelect">
+    <option value="all">All Players</option>
+  </select>
+</label>
+
   <script src="dashboard.js"></script>
 </body>
 </html>

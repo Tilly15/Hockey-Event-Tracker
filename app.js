@@ -56,6 +56,8 @@ function getFormValues() {
     ledToShot: document.getElementById("ledToShot").value,
     entryExitType: document.getElementById("entryExitType").value,
     situation: document.getElementById("situation").value,
+    primaryAssist: document.getElementById("primaryAssist").value,
+    secondaryAssist: document.getElementById("secondaryAssist").value,
   };
 }
 
@@ -90,6 +92,8 @@ row.innerHTML = `
   <td>${event.entryExitType}</td>
   <td>${event.situation}</td>
   <td>${event.videoTime}</td>
+  <td>${event.primaryAssist}</td>
+<td>${event.secondaryAssist}</td>
   <td>
     <button class="goto-btn" data-index="${index}">
       Go To

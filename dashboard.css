@@ -1,0 +1,29 @@
+.player-card {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin: 16px 0;
+  max-width: 420px;
+}
+
+.player-card p {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  margin: 4px 0;
+}
+
+.rank-green {
+  background-color: #c8f7c5;
+}
+
+.rank-yellow {
+  background-color: #fff3b0;
+}
+
+.rank-orange {
+  background-color: #ffd59e;
+}
+
+.rank-red {
+  background-color: #ffb3b3;
+}
