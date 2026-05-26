@@ -11,6 +11,11 @@ const rosterNumber = document.getElementById("rosterNumber");
 const rosterName = document.getElementById("rosterName");
 const addRosterPlayerBtn = document.getElementById("addRosterPlayerBtn");
 const rosterList = document.getElementById("rosterList");
+const shotMapType = document.getElementById("shotMapType");
+const shotMapDots = document.getElementById("shotMapDots");
+const shotMapSection = document.getElementById("shotMapSection");
+
+let currentGameData = null;
 
 let currentTotals = {};
 let currentSortColumn = "player";
@@ -72,6 +77,7 @@ function loadGameData() {
 
 if (gameId === "all") {
   events = getSeasonEvents(seasonId);
+  currentGameData = null;
 } else {
   const savedGame = localStorage.getItem(getGameStorageKey(seasonId, gameId));
 
@@ -81,6 +87,7 @@ if (gameId === "all") {
   }
 
   const gameData = JSON.parse(savedGame);
+  currentGameData = gameData;
   events = gameData.events || [];
 }
 
@@ -88,6 +95,13 @@ if (gameId === "all") {
     const filteredEvents = filterEventsBySituation(currentEvents);
 
   renderPlayerTotals(filteredEvents);
+  if (gameId === "all") {
+  shotMapSection.style.display = "none";
+  shotMapDots.innerHTML = "";
+} else {
+  shotMapSection.style.display = "block";
+  renderShotMap(filteredEvents);
+}
 
   summary.innerHTML = `
     <h2>Summary</h2>
@@ -667,6 +681,129 @@ seasonSelect.addEventListener("change", () => {
   renderRoster();
 });
 
+shotMapType.addEventListener("change", () => {
+  if (!currentGameData) {
+    shotMapSection.style.display = "none";
+    shotMapDots.innerHTML = "";
+    return;
+  }
+
+  const filteredEvents = filterEventsBySituation(currentEvents);
+  shotMapSection.style.display = "block";
+  renderShotMap(filteredEvents);
+});
+
+function shouldFlipShot(event) {
+  const period = String(event.period);
+  const period1Direction =
+    currentGameData?.period1AttackDirection || "right";
+
+  const attackingRight =
+    period === "1" || period === "3" || period === "OT"
+      ? period1Direction === "right"
+      : period1Direction === "left";
+
+  return !attackingRight;
+}
+
+function normalizeShotCoordinates(event) {
+  const x = Number(event.x);
+  const y = Number(event.y);
+
+  if (shouldFlipShot(event)) {
+    return {
+      x: -x,
+      y: -y,
+    };
+  }
+
+  return { x, y };
+}
+
+function rinkToPixelCoordinates(x, y) {
+  return {
+    left: ((x + 100) / 200) * 100,
+    top: ((42.5 - y) / 85) * 100,
+  };
+}
+
+function renderShotMap(events) {
+  if (!shotMapDots) {
+    return;
+  }
+
+  const selectedType = shotMapType.value;
+
+  const shotEvents = events.filter((event) => {
+    if (selectedType === "for") {
+      return event.eventType === "shot" || event.eventType === "goal";
+    }
+
+    if (selectedType === "against") {
+      return (
+        event.eventType === "opponent_shot" ||
+        event.eventType === "opponent_goal"
+      );
+    }
+
+    return false;
+  });
+
+  shotMapDots.innerHTML = "";
+
+  shotEvents.forEach((event) => {
+    const { x, y } = normalizeShotCoordinates(event);
+    const pixel = rinkToPixelCoordinates(x, y);
+
+    const dot = document.createElement("div");
+    dot.classList.add("shot-dot");
+
+    dot.title = getShotTooltip(event);
+
+    if (event.eventType === "goal" || event.eventType === "opponent_goal") {
+      dot.classList.add("goal-dot");
+    }
+
+    dot.style.left = `${pixel.left}%`;
+    dot.style.top = `${pixel.top}%`;
+
+    shotMapDots.appendChild(dot);
+  });
+}
+
+function getShotTooltip(event) {
+  const baseInfo = [
+    `Period: ${event.period || ""}`,
+    `Time: ${event.time || ""}`,
+    `Situation: ${event.situation || ""}`,
+  ];
+
+  if (event.eventType === "opponent_shot" || event.eventType === "opponent_goal") {
+    return [
+      ...baseInfo,
+      `Our Players On Ice: ${event.shotAgainstPlayers || ""}`,
+    ].join("\n");
+  }
+
+  if (event.eventType === "goal") {
+    return [
+      ...baseInfo,
+      `Shooter: ${event.player || ""}`,
+      `Shot Assist: ${event.shotAssist || ""}`,
+      `Primary Assist: ${event.primaryAssist || ""}`,
+      `Secondary Assist: ${event.secondaryAssist || ""}`,
+      `Players On Ice: ${event.playersOnIce || ""}`,
+    ].join("\n");
+  }
+
+  return [
+    ...baseInfo,
+    `Shooter: ${event.player || ""}`,
+    `Shot Assist: ${event.shotAssist || ""}`,
+    `Players On Ice: ${event.playersOnIce || ""}`,
+  ].join("\n");
+}
+
 function getRankClass(totals, statName, playerName) {
   const sortedPlayers = Object.entries(totals)
     .sort(([, aStats], [, bStats]) => bStats[statName] - aStats[statName]);
@@ -683,6 +820,7 @@ loadDashboardBtn.addEventListener("click", loadGameData);
 situationFilter.addEventListener("change", () => {
   const filteredEvents = filterEventsBySituation(currentEvents);
   renderPlayerTotals(filteredEvents);
+  renderShotMap(filteredEvents);
 });
 
 populateSeasons();

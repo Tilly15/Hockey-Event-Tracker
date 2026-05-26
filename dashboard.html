@@ -30,6 +30,47 @@
     <p>Select a season and game to view stats.</p>
   </section>
 
+<section id="shotMapSection" style="display: none;">
+  <h2>Shot Map</h2>
+
+  <label>
+    Shot Map Type:
+    <select id="shotMapType">
+      <option value="for">Shots For</option>
+      <option value="against">Shots Against</option>
+    </select>
+  </label>
+
+<div id="dashboardRink">
+  <div class="dash-line dash-goal-line left"></div>
+  <div class="dash-line dash-goal-line right"></div>
+  <div class="dash-line dash-blue-line left"></div>
+  <div class="dash-line dash-blue-line right"></div>
+  <div class="dash-line dash-center-line"></div>
+
+  <div class="dash-faceoff-circle left-zone top"></div>
+  <div class="dash-faceoff-circle left-zone bottom"></div>
+  <div class="dash-faceoff-circle right-zone top"></div>
+  <div class="dash-faceoff-circle right-zone bottom"></div>
+  <div class="dash-center-circle"></div>
+
+  <div class="dash-faceoff-dot left-top-dot"></div>
+  <div class="dash-faceoff-dot left-bottom-dot"></div>
+  <div class="dash-faceoff-dot right-top-dot"></div>
+  <div class="dash-faceoff-dot right-bottom-dot"></div>
+
+  <div class="dash-neutral-dot left-top-neutral"></div>
+  <div class="dash-neutral-dot left-bottom-neutral"></div>
+  <div class="dash-neutral-dot right-top-neutral"></div>
+  <div class="dash-neutral-dot right-bottom-neutral"></div>
+
+  <div class="dash-crease left-crease"></div>
+  <div class="dash-crease right-crease"></div>
+
+  <div id="shotMapDots"></div>
+</div>
+</section>
+
   <section>
   <h2>Season Roster</h2>
 

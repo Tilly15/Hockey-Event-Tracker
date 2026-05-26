@@ -19,6 +19,7 @@ const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
 const deleteSavedGameBtn = document.getElementById("deleteSavedGameBtn");
 const seasonIdInput = document.getElementById("seasonId");
 const savedSeasonsSelect = document.getElementById("savedSeasonsSelect");
+const period1AttackDirection = document.getElementById("period1AttackDirection");
 
 let selectedLocation = null;
 let events = [];
@@ -364,6 +365,7 @@ function saveCurrentGame() {
     seasonId,
     gameId,
     youtubeUrls: getYouTubeUrls(),
+    period1AttackDirection: period1AttackDirection.value,
     events,
   };
 
@@ -400,6 +402,7 @@ function openGame(seasonId, gameId) {
   const gameData = JSON.parse(savedGame);
 
   document.getElementById("gameId").value = gameData.gameId;
+  period1AttackDirection.value = gameData.period1AttackDirection || "right";
   youtubeUrls.value = (gameData.youtubeUrls || []).join("\n");
   refreshVideoSelect();
   events = gameData.events || [];

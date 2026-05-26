@@ -27,3 +27,196 @@
 .rank-red {
   background-color: #ffb3b3;
 }
+
+#dashboardRink {
+  position: relative;
+  width: 800px;
+  height: 340px;
+  border: 3px solid #333;
+  border-radius: 80px;
+  background: #f8f8f8;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+#shotMapDots {
+  position: absolute;
+  inset: 0;
+}
+
+.shot-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.goal-dot {
+  width: 14px;
+  height: 14px;
+  background: red;
+}
+
+.dash-line {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 3px;
+}
+
+.dash-goal-line {
+  background-color: red;
+}
+
+.dash-goal-line.left {
+  left: 5.5%;
+}
+
+.dash-goal-line.right {
+  left: 94.5%;
+}
+
+.dash-blue-line {
+  background-color: blue;
+}
+
+.dash-blue-line.left {
+  left: 38.5%;
+}
+
+.dash-blue-line.right {
+  left: 61.5%;
+}
+
+.dash-center-line {
+  background-color: red;
+  left: 50%;
+}
+
+.dash-faceoff-circle,
+.dash-center-circle {
+  position: absolute;
+  width: 15%;
+  aspect-ratio: 1 / 1;
+  border: 3px solid red;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.dash-faceoff-circle.left-zone {
+  left: 17%;
+}
+
+.dash-faceoff-circle.right-zone {
+  left: 83%;
+}
+
+.dash-faceoff-circle.top {
+  top: 30%;
+}
+
+.dash-faceoff-circle.bottom {
+  top: 70%;
+}
+
+.dash-center-circle {
+  left: 50%;
+  top: 50%;
+}
+
+.dash-faceoff-dot,
+.dash-neutral-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.left-top-dot {
+  left: 17%;
+  top: 30%;
+}
+
+.left-bottom-dot {
+  left: 17%;
+  top: 70%;
+}
+
+.right-top-dot {
+  left: 83%;
+  top: 30%;
+}
+
+.right-bottom-dot {
+  left: 83%;
+  top: 70%;
+}
+
+.left-top-neutral {
+  left: 42.5%;
+  top: 30%;
+}
+
+.left-bottom-neutral {
+  left: 42.5%;
+  top: 70%;
+}
+
+.right-top-neutral {
+  left: 57.5%;
+  top: 30%;
+}
+
+.right-bottom-neutral {
+  left: 57.5%;
+  top: 70%;
+}
+
+.dash-crease {
+  position: absolute;
+  top: 50%;
+  width: 5%;
+  height: 14%;
+  border: 3px solid blue;
+  transform: translateY(-50%);
+}
+
+.dash-crease.left-crease {
+  left: 5.5%;
+  border-radius: 0 40px 40px 0;
+  border-left: none;
+}
+
+.dash-crease.right-crease {
+  right: 5.5%;
+  border-radius: 40px 0 0 40px;
+  border-right: none;
+}
+
+#shotMapDots {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.shot-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.goal-dot {
+  width: 14px;
+  height: 14px;
+  background: red;
+}
