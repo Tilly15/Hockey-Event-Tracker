@@ -69,6 +69,18 @@
 
   <div id="shotMapDots"></div>
 </div>
+
+<div id="shotVideoSection" style="display: none;">
+  <h3>Shot Clip</h3>
+  <iframe
+    id="shotVideoFrame"
+    width="800"
+    height="450"
+    src=""
+    allowfullscreen
+  ></iframe>
+</div>
+
 </section>
 
   <section>
@@ -118,7 +130,6 @@
     <option value="3v6">3v6</option>
   </select>
 
-
 </label>
 
 
@@ -128,6 +139,45 @@
   <button id="loadSeasonCardsBtn" type="button">Load Season Cards</button>
   <div id="playerCards"></div>
 </section>
+
+<div class="player-card-shot-controls">
+  <label>
+    Game:
+    <select id="player-card-game-${player}">
+      <option value="all">All Games</option>
+      ${getSavedGames()
+        .filter((game) => game.seasonId === seasonId)
+        .map(
+          (game) =>
+            `<option value="${game.gameId}">${game.gameId}</option>`
+        )
+        .join("")}
+    </select>
+  </label>
+
+  <label>
+    Type:
+    <select id="player-card-type-${player}">
+      <option value="shots">Shots</option>
+      <option value="shotAssists">Shot Assists</option>
+    </select>
+  </label>
+
+  <button
+    type="button"
+    onclick="renderPlayerCardShotMap('${player}')"
+  >
+    Load Shot Map
+  </button>
+</div>
+
+<div class="player-card-rink">
+  <div class="player-card-dots" id="player-card-dots-${player}"></div>
+</div>
+
+<div class="player-card-rink" id="player-card-rink-${player}">
+  <div class="player-card-dots" id="player-card-dots-${player}"></div>
+</div>
 
 <label>
   Player:

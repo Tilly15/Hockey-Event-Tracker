@@ -220,3 +220,27 @@
   height: 14px;
   background: red;
 }
+
+.player-card-rink {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  height: 160px;
+  border: 2px solid #333;
+  border-radius: 40px;
+  background: #f8f8f8;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.player-card-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+.player-card-shot-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

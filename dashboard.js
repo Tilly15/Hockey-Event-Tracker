@@ -14,6 +14,8 @@ const rosterList = document.getElementById("rosterList");
 const shotMapType = document.getElementById("shotMapType");
 const shotMapDots = document.getElementById("shotMapDots");
 const shotMapSection = document.getElementById("shotMapSection");
+const shotVideoSection = document.getElementById("shotVideoSection");
+const shotVideoFrame = document.getElementById("shotVideoFrame");
 
 let currentGameData = null;
 
@@ -569,29 +571,62 @@ function renderSeasonPlayerCards() {
   const roster = getRoster(seasonId);
   const selectedPlayer = seasonCardPlayerSelect.value;
 
-const playerEntries = Object.entries(totals)
-  .filter(([player]) => selectedPlayer === "all" || player === selectedPlayer);
+  const playerEntries = Object.entries(totals).filter(
+    ([player]) => selectedPlayer === "all" || player === selectedPlayer
+  );
 
   const cards = playerEntries
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([player, stats]) => `
-      <div class="player-card">
-        <h3>#${player} ${roster[player] || ""}</h3>
+    .map(
+      ([player, stats]) => `
+        <div class="player-card">
+          <h3>#${player} ${roster[player] || ""}</h3>
 
-        <p class="${getRankClass(totals, "goals", player)}"><strong>Goals:</strong> ${stats.goals} <span>Team Rank: #${getRank(totals, "goals", player)}</span></p>
-        <p class="${getRankClass(totals, "assists", player)}"><strong>Assists:</strong> ${stats.assists} <span>Team Rank: #${getRank(totals, "assists", player)}</span></p>
-        <p class="${getRankClass(totals, "points", player)}"><strong>Points:</strong> ${stats.points} <span>Team Rank: #${getRank(totals, "points", player)}</span></p>
+          <p class="${getRankClass(totals, "goals", player)}"><strong>Goals:</strong> ${stats.goals} <span>Team Rank: #${getRank(totals, "goals", player)}</span></p>
+          <p class="${getRankClass(totals, "assists", player)}"><strong>Assists:</strong> ${stats.assists} <span>Team Rank: #${getRank(totals, "assists", player)}</span></p>
+          <p class="${getRankClass(totals, "points", player)}"><strong>Points:</strong> ${stats.points} <span>Team Rank: #${getRank(totals, "points", player)}</span></p>
+          <p class="${getRankClass(totals, "shots", player)}"><strong>Shots:</strong> ${stats.shots} <span>Team Rank: #${getRank(totals, "shots", player)}</span></p>
+          <p class="${getRankClass(totals, "shotAssists", player)}"><strong>Shot Assists:</strong> ${stats.shotAssists} <span>Team Rank: #${getRank(totals, "shotAssists", player)}</span></p>
+          <p class="${getRankClass(totals, "shotDifferential", player)}"><strong>On-Ice Shot Differential:</strong> ${stats.shotDifferential} <span>Team Rank: #${getRank(totals, "shotDifferential", player)}</span></p>
+          <p class="${getRankClass(totals, "onIceGoalDifferential", player)}"><strong>On-Ice Goal Differential:</strong> ${stats.onIceGoalDifferential} <span>Team Rank: #${getRank(totals, "onIceGoalDifferential", player)}</span></p>
+          <p class="${getRankClass(totals, "controlledEntries", player)}"><strong>Controlled Entries:</strong> ${stats.controlledEntries} <span>Team Rank: #${getRank(totals, "controlledEntries", player)}</span></p>
+          <p class="${getRankClass(totals, "controlledExits", player)}"><strong>Controlled Exits:</strong> ${stats.controlledExits} <span>Team Rank: #${getRank(totals, "controlledExits", player)}</span></p>
+          <p class="${getRankClass(totals, "drawnPenalties", player)}"><strong>Penalties Drawn:</strong> ${stats.drawnPenalties} <span>Team Rank: #${getRank(totals, "drawnPenalties", player)}</span></p>
 
-        <p class="${getRankClass(totals, "shots", player)}"><strong>Shots:</strong> ${stats.shots} <span>Team Rank: #${getRank(totals, "shots", player)}</span></p>
-        <p class="${getRankClass(totals, "shotAssists", player)}"><strong>Shot Assists:</strong> ${stats.shotAssists} <span>Team Rank: #${getRank(totals, "shotAssists", player)}</span></p>
-        <p class="${getRankClass(totals, "shotDifferential", player)}"><strong>On-Ice Shot Differential:</strong> ${stats.onIceShotsFor - stats.onIceShotsAgainst} <span>Team Rank: #${getRank(totals, "shotDifferential", player)}</span></p>
+          <div class="player-card-shot-controls">
+            <label>
+              Game:
+              <select id="player-card-game-${player}">
+                <option value="all">All Games</option>
+                ${getSavedGames()
+                  .filter((game) => game.seasonId === seasonId)
+                  .map(
+                    (game) =>
+                      `<option value="${game.gameId}">${game.gameId}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
 
-        <p class="${getRankClass(totals, "onIceGoalDifferential", player)}"><strong>On-Ice Goal Differential:</strong> ${stats.onIceGoalDifferential} <span>Team Rank: #${getRank(totals, "onIceGoalDifferential", player)}</span></p>
-        <p class="${getRankClass(totals, "controlledEntries", player)}"><strong>Controlled Entries:</strong> ${stats.controlledEntries} <span>Team Rank: #${getRank(totals, "controlledEntries", player)}</span></p>
-        <p class="${getRankClass(totals, "controlledExits", player)}"><strong>Controlled Exits:</strong> ${stats.controlledExits} <span>Team Rank: #${getRank(totals, "controlledExits", player)}</span></p>
-        <p class="${getRankClass(totals, "drawnPenalties", player)}"><strong>Penalties Drawn:</strong> ${stats.drawnPenalties} <span>Team Rank: #${getRank(totals, "drawnPenalties", player)}</span></p>
-      </div>
-    `)
+            <label>
+              Type:
+              <select id="player-card-type-${player}">
+                <option value="shots">Shots</option>
+                <option value="shotAssists">Shot Assists</option>
+              </select>
+            </label>
+
+            <button type="button" onclick="renderPlayerCardShotMap('${player}')">
+              Load Shot Map
+            </button>
+          </div>
+
+          <div class="player-card-rink">
+            <div class="player-card-dots" id="player-card-dots-${player}"></div>
+          </div>
+        </div>
+      `
+    )
     .join("");
 
   playerCards.innerHTML = cards;
@@ -760,6 +795,10 @@ function renderShotMap(events) {
 
     dot.title = getShotTooltip(event);
 
+    dot.addEventListener("click", () => {
+  showShotClip(event);
+});
+
     if (event.eventType === "goal" || event.eventType === "opponent_goal") {
       dot.classList.add("goal-dot");
     }
@@ -822,5 +861,143 @@ situationFilter.addEventListener("change", () => {
   renderPlayerTotals(filteredEvents);
   renderShotMap(filteredEvents);
 });
+
+function getYouTubeVideoId(url) {
+  const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([^&?/]+)/);
+  return match ? match[1] : url;
+}
+
+function showShotClip(event) {
+  let gameData = currentGameData;
+
+  if (!gameData || gameData.gameId !== event.gameId) {
+    const savedGame = localStorage.getItem(
+      getGameStorageKey(seasonSelect.value, event.gameId)
+    );
+
+    if (savedGame) {
+      gameData = JSON.parse(savedGame);
+    }
+  }
+
+  if (!gameData || !gameData.youtubeUrls) {
+    alert("No video URL saved for this game.");
+    return;
+  }
+
+  const videoIndex = Number(event.videoIndex || 0);
+  const videoUrl = gameData.youtubeUrls[videoIndex];
+
+  if (!videoUrl) {
+    alert("No video found for this event.");
+    return;
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  const startTime = Math.max(0, Math.floor(Number(event.videoTime || 0) - 10));
+
+  shotVideoFrame.src =
+    `https://www.youtube.com/embed/${videoId}?start=${startTime}&autoplay=1`;
+
+  shotVideoSection.style.display = "block";
+}
+
+function renderPlayerCardShotMap(player) {
+  const seasonId = seasonSelect.value;
+  const selectedGameId = document.getElementById(`player-card-game-${player}`).value;
+  const selectedType = document.getElementById(`player-card-type-${player}`).value;
+
+  let seasonEvents = getSeasonEvents(seasonId);
+
+  if (selectedGameId !== "all") {
+    seasonEvents = seasonEvents.filter(
+      (event) => event.gameId === selectedGameId
+    );
+  }
+
+  let eventsToShow = [];
+
+  if (selectedType === "shots") {
+    eventsToShow = seasonEvents.filter(
+      (event) =>
+        (event.eventType === "shot" || event.eventType === "goal") &&
+        event.player === player
+    );
+  }
+
+  if (selectedType === "shotAssists") {
+    eventsToShow = seasonEvents.filter(
+      (event) =>
+        (event.eventType === "shot" || event.eventType === "goal") &&
+        event.shotAssist === player
+    );
+  }
+
+  const dotsContainer = document.getElementById(`player-card-dots-${player}`);
+  dotsContainer.innerHTML = "";
+
+  eventsToShow.forEach((event) => {
+    const { x, y } = normalizeShotCoordinatesForCards(event);
+    const pixel = rinkToPixelCoordinates(x, y);
+
+    const dot = document.createElement("div");
+    dot.classList.add("shot-dot");
+
+    if (event.eventType === "goal") {
+      dot.classList.add("goal-dot");
+    }
+
+    dot.title = getShotTooltip(event);
+    dot.style.left = `${pixel.left}%`;
+    dot.style.top = `${pixel.top}%`;
+
+    dot.addEventListener("click", () => {
+      showShotClip(event);
+    });
+
+    dotsContainer.appendChild(dot);
+  });
+}
+
+function normalizeShotCoordinatesForCards(event) {
+  const savedGames = getSavedGames();
+  const game = savedGames.find(
+    (savedGame) =>
+      savedGame.seasonId === seasonSelect.value &&
+      savedGame.gameId === event.gameId
+  );
+
+  let gameData = null;
+
+  if (game) {
+    const savedGame = localStorage.getItem(
+      getGameStorageKey(game.seasonId, game.gameId)
+    );
+
+    if (savedGame) {
+      gameData = JSON.parse(savedGame);
+    }
+  }
+
+  const period1Direction = gameData?.period1AttackDirection || "right";
+  const period = String(event.period);
+
+  const attackingRight =
+    period === "1" || period === "3" || period === "OT"
+      ? period1Direction === "right"
+      : period1Direction === "left";
+
+  const x = Number(event.x);
+  const y = Number(event.y);
+
+  if (!attackingRight) {
+    return {
+      x: -x,
+      y: -y,
+    };
+  }
+
+  return { x, y };
+}
 
 populateSeasons();
