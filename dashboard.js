@@ -1,6 +1,5 @@
 const seasonSelect = document.getElementById("seasonSelect");
 const gameSelect = document.getElementById("gameSelect");
-const loadDashboardBtn = document.getElementById("loadDashboardBtn");
 const summary = document.getElementById("summary");
 const playerTotals = document.getElementById("playerTotals");
 const situationFilter = document.getElementById("situationFilter");
@@ -12,10 +11,25 @@ const rosterName = document.getElementById("rosterName");
 const addRosterPlayerBtn = document.getElementById("addRosterPlayerBtn");
 const rosterList = document.getElementById("rosterList");
 const shotMapType = document.getElementById("shotMapType");
-const shotMapDots = document.getElementById("shotMapDots");
+let shotMapDots = document.getElementById("shotMapDots");
 const shotMapSection = document.getElementById("shotMapSection");
 const shotVideoSection = document.getElementById("shotVideoSection");
 const shotVideoFrame = document.getElementById("shotVideoFrame");
+const gameRosterGameSelect = document.getElementById("gameRosterGameSelect");
+const gameRosterPlayer = document.getElementById("gameRosterPlayer");
+const gameRosterPosition = document.getElementById("gameRosterPosition");
+const addGameRosterPlayerBtn = document.getElementById("addGameRosterPlayerBtn");
+const gameRosterList = document.getElementById("gameRosterList");
+const lineComboGameSelect = document.getElementById("lineComboGameSelect");
+const showForwardLinesBtn = document.getElementById("showForwardLinesBtn");
+const showDefensePairsBtn = document.getElementById("showDefensePairsBtn");
+const lineCombinationsContent = document.getElementById("lineCombinationsContent");
+const lineComboMinShots = document.getElementById("lineComboMinShots");
+
+document.getElementById("dashboardRink").innerHTML =
+  getRinkMarkup("shotMapDots");
+
+  shotMapDots = document.getElementById("shotMapDots");
 
 let currentGameData = null;
 
@@ -24,6 +38,11 @@ let currentSortColumn = "player";
 let currentSortAscending = true;
 
 let currentEvents = [];
+
+let currentLineComboRows = [];
+let currentLineComboType = "forward";
+let currentLineComboSortColumn = "onIceShotsFor";
+let currentLineComboSortAscending = false;
 
 function getSavedGames() {
   return JSON.parse(localStorage.getItem("savedGames") || "[]");
@@ -526,6 +545,16 @@ function filterEventsBySituation(events) {
   return events.filter((event) => event.situation === selectedSituation);
 }
 
+situationFilter.addEventListener("change", () => {
+  const filteredEvents = filterEventsBySituation(currentEvents);
+
+  renderPlayerTotals(filteredEvents);
+
+  if (currentGameData) {
+    renderShotMap(filteredEvents);
+  }
+});
+
 function getSeasonEvents(seasonId) {
   const savedGames = getSavedGames();
 
@@ -622,7 +651,7 @@ function renderSeasonPlayerCards() {
           </div>
 
           <div class="player-card-rink">
-            <div class="player-card-dots" id="player-card-dots-${player}"></div>
+            ${getRinkMarkup(`player-card-dots-${player}`)}
           </div>
         </div>
       `
@@ -678,8 +707,47 @@ function renderRoster() {
 
   rosterList.innerHTML = Object.entries(roster)
     .sort(([a], [b]) => Number(a) - Number(b))
-    .map(([number, name]) => `<p>#${number} — ${name}</p>`)
+    .map(
+      ([number, name]) => `
+        <div class="roster-row">
+          <span>#${number} — ${name}</span>
+
+          <button type="button" onclick="editRosterPlayer('${number}')">
+            Edit
+          </button>
+
+          <button type="button" onclick="deleteRosterPlayer('${number}')">
+            Delete
+          </button>
+        </div>
+      `
+    )
     .join("");
+}
+
+function editRosterPlayer(number) {
+  const seasonId = seasonSelect.value;
+  const roster = getRoster(seasonId);
+
+  rosterNumber.value = number;
+  rosterName.value = roster[number] || "";
+}
+
+function deleteRosterPlayer(number) {
+  const seasonId = seasonSelect.value;
+  const roster = getRoster(seasonId);
+
+  const confirmed = confirm(`Delete player #${number} from this roster?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  delete roster[number];
+
+  saveRoster(seasonId, roster);
+  renderRoster();
+  populateSeasonCardPlayers();
 }
 
 addRosterPlayerBtn.addEventListener("click", () => {
@@ -690,8 +758,10 @@ addRosterPlayerBtn.addEventListener("click", () => {
     return;
   }
 
-  const number = rosterNumber.value.trim();
-  const name = rosterName.value.trim();
+  const playerNumber = gameRosterPlayer.value;
+  
+  const seasonRoster = getRoster(seasonId);
+  const playerName = seasonRoster[playerNumber];
 
   if (!number || !name) {
     alert("Please enter both player number and name.");
@@ -704,8 +774,10 @@ addRosterPlayerBtn.addEventListener("click", () => {
   saveRoster(seasonId, roster);
   renderRoster();
 
-  rosterNumber.value = "";
-  rosterName.value = "";
+  roster[playerNumber] = {
+  name: playerName,
+  position: gameRosterPosition.value,
+};
 });
 
 loadSeasonCardsBtn.addEventListener("click", renderSeasonPlayerCards);
@@ -763,6 +835,7 @@ function rinkToPixelCoordinates(x, y) {
 }
 
 function renderShotMap(events) {
+  shotMapDots = document.getElementById("shotMapDots");
   if (!shotMapDots) {
     return;
   }
@@ -855,12 +928,7 @@ function getRankClass(totals, statName, playerName) {
   if (percentile <= 0.75) return "rank-orange";
   return "rank-red";
 }
-loadDashboardBtn.addEventListener("click", loadGameData);
-situationFilter.addEventListener("change", () => {
-  const filteredEvents = filterEventsBySituation(currentEvents);
-  renderPlayerTotals(filteredEvents);
-  renderShotMap(filteredEvents);
-});
+
 
 function getYouTubeVideoId(url) {
   const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([^&?/]+)/);
@@ -998,6 +1066,493 @@ function normalizeShotCoordinatesForCards(event) {
   }
 
   return { x, y };
+}
+
+function getRinkMarkup(dotsId = "") {
+  return `
+    <div class="goal-line left-goal-line"></div>
+    <div class="goal-line right-goal-line"></div>
+
+    <div class="faceoff-circle left-zone top"></div>
+    <div class="faceoff-circle left-zone bottom"></div>
+    <div class="faceoff-circle right-zone top"></div>
+    <div class="faceoff-circle right-zone bottom"></div>
+
+    <div class="faceoff-dot left-top-dot"></div>
+    <div class="faceoff-dot left-bottom-dot"></div>
+    <div class="faceoff-dot right-top-dot"></div>
+    <div class="faceoff-dot right-bottom-dot"></div>
+
+    <div class="neutral-dot left-top-neutral"></div>
+    <div class="neutral-dot left-bottom-neutral"></div>
+    <div class="neutral-dot right-top-neutral"></div>
+    <div class="neutral-dot right-bottom-neutral"></div>
+
+    <div class="center-circle"></div>
+
+    <div class="crease left-crease"></div>
+    <div class="crease right-crease"></div>
+
+    <div class="blue-line left-blue-line"></div>
+    <div class="blue-line right-blue-line"></div>
+    <div class="center-line"></div>
+
+    <div class="shot-dots-layer" ${dotsId ? `id="${dotsId}"` : ""}></div>
+  `;
+}
+
+function showPanel(panelId) {
+  document.querySelectorAll(".dashboard-panel").forEach((panel) => {
+    panel.style.display = "none";
+  });
+
+  document.getElementById(panelId).style.display = "block";
+
+  if (panelId === "shotMapPanel") {
+    if (currentGameData) {
+      shotMapSection.style.display = "block";
+      const filteredEvents = filterEventsBySituation(currentEvents);
+      renderShotMap(filteredEvents);
+    } else {
+      shotMapSection.style.display = "none";
+      shotMapDots.innerHTML = "";
+    }
+  }
+
+  if (panelId === "playerTotalsPanel") {
+    const filteredEvents = filterEventsBySituation(currentEvents);
+    renderPlayerTotals(filteredEvents);
+  }
+}
+
+seasonSelect.addEventListener("change", () => {
+  const dashboardContent = document.getElementById("dashboardContent");
+
+  if (seasonSelect.value) {
+    dashboardContent.style.display = "block";
+    refreshGamesDropdown();
+  } else {
+    dashboardContent.style.display = "none";
+  }
+});
+
+seasonSelect.addEventListener("change", () => {
+  const dashboardContent = document.getElementById("dashboardContent");
+
+  if (!seasonSelect.value) {
+    dashboardContent.style.display = "none";
+    return;
+  }
+
+  dashboardContent.style.display = "block";
+
+  populateGames();
+  populateSeasonCardPlayers();
+  renderRoster();
+  showPanel("summaryPanel");
+  populateGameRosterGames();
+  populateGameRosterPlayers();
+  populateLineComboGames();
+});
+
+gameSelect.addEventListener("change", () => {
+  if (!seasonSelect.value || !gameSelect.value) {
+    return;
+  }
+
+  loadGameData();
+  showPanel("summaryPanel");
+});
+
+function getGameRosterKey(seasonId, gameId) {
+  return `hockey-game-roster-${seasonId}-${gameId}`;
+}
+
+function getGameRoster(seasonId, gameId) {
+  return JSON.parse(localStorage.getItem(getGameRosterKey(seasonId, gameId)) || "{}");
+}
+
+function saveGameRoster(seasonId, gameId, roster) {
+  localStorage.setItem(getGameRosterKey(seasonId, gameId), JSON.stringify(roster));
+}
+
+function populateGameRosterGames() {
+  const seasonId = seasonSelect.value;
+  const savedGames = getSavedGames();
+
+  gameRosterGameSelect.innerHTML = `<option value="">Select game...</option>`;
+
+  savedGames
+    .filter((game) => game.seasonId === seasonId)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      gameRosterGameSelect.appendChild(option);
+    });
+}
+
+function renderGameRoster() {
+  const seasonId = seasonSelect.value;
+  const gameId = gameRosterGameSelect.value;
+
+  if (!seasonId || !gameId) {
+    gameRosterList.innerHTML = "<p>Select a game to view roster.</p>";
+    return;
+  }
+
+  const roster = getGameRoster(seasonId, gameId);
+
+  gameRosterList.innerHTML = Object.entries(roster)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(
+      ([number, player]) => `
+        <div class="roster-row">
+          <span>#${number} — ${player.name} — ${player.position}</span>
+
+          <button type="button" onclick="editGameRosterPlayer('${number}')">
+            Edit
+          </button>
+
+          <button type="button" onclick="deleteGameRosterPlayer('${number}')">
+            Delete
+          </button>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function editGameRosterPlayer(number) {
+  const seasonId = seasonSelect.value;
+  const gameId = gameRosterGameSelect.value;
+  const roster = getGameRoster(seasonId, gameId);
+
+  gameRosterNumber.value = number;
+  gameRosterName.value = roster[number].name;
+  gameRosterPosition.value = roster[number].position;
+}
+
+function deleteGameRosterPlayer(number) {
+  const seasonId = seasonSelect.value;
+  const gameId = gameRosterGameSelect.value;
+  const roster = getGameRoster(seasonId, gameId);
+
+  if (!confirm(`Delete player #${number} from this game roster?`)) {
+    return;
+  }
+
+  delete roster[number];
+
+  saveGameRoster(seasonId, gameId, roster);
+  renderGameRoster();
+}
+
+gameRosterGameSelect.addEventListener("change", renderGameRoster);
+
+addGameRosterPlayerBtn.addEventListener("click", () => {
+  const seasonId = seasonSelect.value;
+  const gameId = gameRosterGameSelect.value;
+
+  if (!seasonId || !gameId) {
+    alert("Please select a game first.");
+    return;
+  }
+
+  const playerNumber = gameRosterPlayer.value;
+  const seasonRoster = getRoster(seasonId);
+  const playerName = seasonRoster[playerNumber];
+  const position = gameRosterPosition.value;
+  const roster = getGameRoster(seasonId, gameId);
+
+  roster[playerNumber] = {
+  name: playerName,
+  position: gameRosterPosition.value,
+};
+  saveGameRoster(seasonId, gameId, roster);
+  renderGameRoster();
+
+  gameRosterNumber.value = "";
+  gameRosterName.value = "";
+  gameRosterPosition.value = "forward";
+});
+
+function populateGameRosterPlayers() {
+  const seasonId = seasonSelect.value;
+
+  if (!seasonId) return;
+
+  const roster = getRoster(seasonId);
+
+  gameRosterPlayer.innerHTML =
+    '<option value="">Select Player...</option>';
+
+  Object.entries(roster)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .forEach(([number, name]) => {
+      const option = document.createElement("option");
+
+      option.value = number;
+      option.textContent = `#${number} ${name}`;
+
+      gameRosterPlayer.appendChild(option);
+    });
+}
+
+function populateLineComboGames() {
+  const seasonId = seasonSelect.value;
+  const savedGames = getSavedGames();
+
+  lineComboGameSelect.innerHTML = `
+    <option value="all">All Games</option>
+  `;
+
+  savedGames
+    .filter((game) => game.seasonId === seasonId)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      lineComboGameSelect.appendChild(option);
+    });
+}
+
+function getEventsForLineCombos() {
+  const seasonId = seasonSelect.value;
+  const selectedGame = lineComboGameSelect.value;
+
+  let events = getSeasonEvents(seasonId);
+
+  if (selectedGame !== "all") {
+    events = events.filter((event) => event.gameId === selectedGame);
+  }
+
+  return events;
+}
+
+function getGameRosterForEvent(event) {
+  return getGameRoster(seasonSelect.value, event.gameId);
+}
+
+function getPlayersByPosition(event, position) {
+  const roster = getGameRosterForEvent(event);
+
+  return Object.entries(roster)
+    .filter(([, player]) => player.position === position)
+    .map(([number]) => number);
+}
+
+function getCombinations(players, size) {
+  if (size === 0) return [[]];
+  if (players.length < size) return [];
+
+  const [first, ...rest] = players;
+
+  return [
+    ...getCombinations(rest, size - 1).map((combo) => [first, ...combo]),
+    ...getCombinations(rest, size),
+  ];
+}
+
+function parseOnIcePlayers(event) {
+  if (event.eventType === "opponent_shot" || event.eventType === "opponent_goal") {
+    return parsePlayerList(event.shotAgainstPlayers || "");
+  }
+
+  return parsePlayerList(event.playersOnIce || "");
+}
+
+function renderLineCombinations(type) {
+  const events = getEventsForLineCombos().filter(isEvenStrength);
+  const comboSize = type === "forward" ? 3 : 2;
+  const position = type === "forward" ? "forward" : "defenseman";
+  const combos = {};
+
+  currentLineComboType = type;
+
+  events.forEach((event) => {
+    const isShotFor = event.eventType === "shot" || event.eventType === "goal";
+    const isShotAgainst =
+      event.eventType === "opponent_shot" ||
+      event.eventType === "opponent_goal";
+
+    if (!isShotFor && !isShotAgainst) {
+      return;
+    }
+
+    const onIcePlayers = parseOnIcePlayers(event);
+
+    const eligiblePlayers = getPlayersByPosition(event, position).filter(
+      (player) => onIcePlayers.includes(player)
+    );
+
+    const playerCombos = getCombinations(eligiblePlayers.sort(), comboSize);
+
+    playerCombos.forEach((combo) => {
+      const key = combo.join(",");
+
+      if (!combos[key]) {
+        combos[key] = {
+          combo: key,
+          onIceGoalsFor: 0,
+          onIceGoalsAgainst: 0,
+          onIceShotsFor: 0,
+          onIceShotsAgainst: 0,
+          goalSharePercentage: 0,
+          shotSharePercentage: 0,
+          pdo: 0,
+        };
+      }
+
+      if (isShotFor) {
+        combos[key].onIceShotsFor += 1;
+      }
+
+      if (event.eventType === "goal") {
+        combos[key].onIceGoalsFor += 1;
+      }
+
+      if (isShotAgainst) {
+        combos[key].onIceShotsAgainst += 1;
+      }
+
+      if (event.eventType === "opponent_goal") {
+        combos[key].onIceGoalsAgainst += 1;
+      }
+    });
+  });
+
+  const minimumTotalShots = Number(lineComboMinShots.value || 0);
+
+  currentLineComboRows = Object.values(combos).map((stats) => {
+    const totalGoals =
+      stats.onIceGoalsFor + stats.onIceGoalsAgainst;
+
+    const totalShots =
+      stats.onIceShotsFor + stats.onIceShotsAgainst;
+
+    const onIceShooting =
+      stats.onIceShotsFor > 0
+        ? (stats.onIceGoalsFor / stats.onIceShotsFor) * 100
+        : 0;
+
+    const onIceSave =
+      stats.onIceShotsAgainst > 0
+        ? ((stats.onIceShotsAgainst - stats.onIceGoalsAgainst) /
+            stats.onIceShotsAgainst) *
+          100
+        : 0;
+
+    return {
+      ...stats,
+      goalSharePercentage:
+        totalGoals > 0
+          ? (stats.onIceGoalsFor / totalGoals) * 100
+          : 0,
+      shotSharePercentage:
+        totalShots > 0
+          ? (stats.onIceShotsFor / totalShots) * 100
+          : 0,
+      pdo: onIceShooting + onIceSave,
+
+      
+    };
+    
+  })
+    .filter(
+    (stats) =>
+      stats.onIceShotsFor + stats.onIceShotsAgainst >= minimumTotalShots
+  );
+  
+
+  sortLineCombinations(currentLineComboSortColumn, true);
+}
+
+showForwardLinesBtn.addEventListener("click", () => {
+  renderLineCombinations("forward");
+});
+
+showDefensePairsBtn.addEventListener("click", () => {
+  renderLineCombinations("defenseman");
+});
+
+function isEvenStrength(event) {
+  return ["5v5", "4v4", "3v3"].includes(event.situation);
+}
+
+function sortLineCombinations(column, keepDirection = false) {
+  if (!keepDirection) {
+    if (currentLineComboSortColumn === column) {
+      currentLineComboSortAscending = !currentLineComboSortAscending;
+    } else {
+      currentLineComboSortColumn = column;
+      currentLineComboSortAscending = false;
+    }
+  }
+
+  const sortedRows = [...currentLineComboRows].sort((a, b) => {
+    if (column === "combo") {
+      return currentLineComboSortAscending
+        ? a.combo.localeCompare(b.combo)
+        : b.combo.localeCompare(a.combo);
+    }
+
+    return currentLineComboSortAscending
+      ? a[column] - b[column]
+      : b[column] - a[column];
+  });
+
+  renderLineComboTable(sortedRows);
+}
+
+function renderLineComboTable(rows) {
+  const title =
+    currentLineComboType === "forward"
+      ? "Forward Lines"
+      : "Defensive Pairs";
+
+  const comboHeader =
+    currentLineComboType === "forward"
+      ? "Forward Line"
+      : "Defense Pair";
+
+  const tableRows = rows
+    .map(
+      (stats) => `
+        <tr>
+          <td>${stats.combo}</td>
+          <td>${stats.onIceGoalsFor}</td>
+          <td>${stats.onIceGoalsAgainst}</td>
+          <td>${stats.goalSharePercentage.toFixed(1)}%</td>
+          <td>${stats.onIceShotsFor}</td>
+          <td>${stats.onIceShotsAgainst}</td>
+          <td>${stats.shotSharePercentage.toFixed(1)}%</td>
+          <td>${stats.pdo.toFixed(1)}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  lineCombinationsContent.innerHTML = `
+    <h3>${title}</h3>
+    <p>Even strength only</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortLineCombinations('combo')">${comboHeader}</th>
+          <th onclick="sortLineCombinations('onIceGoalsFor')">GF</th>
+          <th onclick="sortLineCombinations('onIceGoalsAgainst')">GA</th>
+          <th onclick="sortLineCombinations('goalSharePercentage')">Goal Share %</th>
+          <th onclick="sortLineCombinations('onIceShotsFor')">SF</th>
+          <th onclick="sortLineCombinations('onIceShotsAgainst')">SA</th>
+          <th onclick="sortLineCombinations('shotSharePercentage')">Shot Share %</th>
+          <th onclick="sortLineCombinations('pdo')">PDO</th>
+        </tr>
+      </thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  `;
 }
 
 populateSeasons();

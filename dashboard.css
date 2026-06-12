@@ -28,75 +28,65 @@
   background-color: #ffb3b3;
 }
 
-#dashboardRink {
+#dashboardRink,
+.player-card-rink {
   position: relative;
-  width: 800px;
-  height: 340px;
   border: 3px solid #333;
   border-radius: 80px;
   background: #f8f8f8;
   overflow: hidden;
-  margin-top: 12px;
 }
 
-#shotMapDots {
-  position: absolute;
-  inset: 0;
+#dashboardRink {
+  width: 800px;
+  height: 340px;
 }
 
-.shot-dot {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: black;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
+.player-card-rink {
+  width: 380px;
+  height: 160px;
 }
 
-.goal-dot {
-  width: 14px;
-  height: 14px;
-  background: red;
-}
-
-.dash-line {
+.goal-line,
+.blue-line,
+.center-line {
   position: absolute;
   top: 0;
   height: 100%;
   width: 3px;
 }
 
-.dash-goal-line {
-  background-color: red;
+.goal-line,
+.center-line {
+  background: red;
 }
 
-.dash-goal-line.left {
+.blue-line {
+  background: blue;
+}
+
+.left-goal-line {
   left: 5.5%;
 }
 
-.dash-goal-line.right {
+.right-goal-line {
   left: 94.5%;
 }
 
-.dash-blue-line {
-  background-color: blue;
+.left-blue-line {
+  left: 37.5%;
 }
 
-.dash-blue-line.left {
-  left: 38.5%;
+.right-blue-line {
+  left: 62.5%;
 }
 
-.dash-blue-line.right {
-  left: 61.5%;
-}
-
-.dash-center-line {
-  background-color: red;
+.center-line {
   left: 50%;
 }
 
-.dash-faceoff-circle,
-.dash-center-circle {
+.faceoff-circle,
+.center-circle {
   position: absolute;
   width: 15%;
   aspect-ratio: 1 / 1;
@@ -105,29 +95,29 @@
   transform: translate(-50%, -50%);
 }
 
-.dash-faceoff-circle.left-zone {
-  left: 17%;
+.left-zone {
+  left: 17.25%;
 }
 
-.dash-faceoff-circle.right-zone {
-  left: 83%;
+.right-zone {
+  left: 82.75%;
 }
 
-.dash-faceoff-circle.top {
-  top: 30%;
+.top {
+  top: 24%;
 }
 
-.dash-faceoff-circle.bottom {
-  top: 70%;
+.bottom {
+  top: 76%;
 }
 
-.dash-center-circle {
+.center-circle {
   left: 50%;
   top: 50%;
 }
 
-.dash-faceoff-dot,
-.dash-neutral-dot {
+.faceoff-dot,
+.neutral-dot {
   position: absolute;
   width: 10px;
   height: 10px;
@@ -138,99 +128,85 @@
 
 .left-top-dot {
   left: 17%;
-  top: 30%;
+  top: 24%;
 }
 
 .left-bottom-dot {
   left: 17%;
-  top: 70%;
+  top: 76%;
 }
 
 .right-top-dot {
   left: 83%;
-  top: 30%;
+  top: 24%;
 }
 
 .right-bottom-dot {
   left: 83%;
-  top: 70%;
+  top: 76%;
 }
 
 .left-top-neutral {
   left: 42.5%;
-  top: 30%;
+  top: 24%;
 }
 
 .left-bottom-neutral {
   left: 42.5%;
-  top: 70%;
+  top: 76%;
 }
 
 .right-top-neutral {
   left: 57.5%;
-  top: 30%;
+  top: 24%;
 }
 
 .right-bottom-neutral {
   left: 57.5%;
-  top: 70%;
+  top: 76%;
 }
 
-.dash-crease {
+.crease {
   position: absolute;
   top: 50%;
-  width: 5%;
+  width: 4%;
   height: 14%;
   border: 3px solid blue;
   transform: translateY(-50%);
 }
 
-.dash-crease.left-crease {
+.left-crease {
   left: 5.5%;
-  border-radius: 0 40px 40px 0;
   border-left: none;
+  border-radius: 0 40px 40px 0;
 }
 
-.dash-crease.right-crease {
+.right-crease {
   right: 5.5%;
-  border-radius: 40px 0 0 40px;
   border-right: none;
+  border-radius: 40px 0 0 40px;
 }
 
-#shotMapDots {
+.shot-dots-layer {
   position: absolute;
   inset: 0;
   z-index: 10;
+}
+
+.goal-line,
+.blue-line,
+.center-line,
+.faceoff-circle,
+.center-circle,
+.faceoff-dot,
+.neutral-dot,
+.crease {
   pointer-events: none;
 }
 
 .shot-dot {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: black;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
   z-index: 20;
-}
-
-.goal-dot {
-  width: 14px;
-  height: 14px;
-  background: red;
-}
-
-.player-card-rink {
-  position: relative;
-  width: 100%;
-  max-width: 380px;
-  height: 160px;
-  border: 2px solid #333;
-  border-radius: 40px;
-  background: #f8f8f8;
-  overflow: hidden;
-  margin-top: 12px;
 }
 
 .player-card-dots {
@@ -243,4 +219,110 @@
   display: flex;
   gap: 8px;
   margin-top: 12px;
+}
+
+.shot-dots-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+.shot-dot {
+  position: absolute;
+  z-index: 20;
+}
+
+.dashboard-panel {
+  display: none;
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.dashboard-tabs button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  background: #f4f4f4;
+  cursor: pointer;
+}
+
+.dashboard-tabs button.active {
+  background: #2c3e50;
+  color: white;
+}
+
+.tab-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.tab-dropdown-menu {
+  display: none;
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  min-width: 150px;
+  z-index: 100;
+}
+
+.tab-dropdown:hover .tab-dropdown-menu {
+  display: block;
+}
+
+.tab-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  border: none;
+  background: white;
+  cursor: pointer;
+}
+
+.tab-dropdown-menu button:hover {
+  background: #eee;
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background: white;
+  min-width: 160px;
+  border: 1px solid #ccc;
+  z-index: 1000;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 8px;
+  text-decoration: none;
+  color: black;
+}
+
+.dropdown-content a:hover {
+  background: #eee;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
 }

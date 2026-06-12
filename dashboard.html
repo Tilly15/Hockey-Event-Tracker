@@ -6,8 +6,9 @@
   <title>Hockey Dashboard</title>
   <link rel="stylesheet" href="dashboard.css" />
 </head>
+
 <body>
-  <h1>Hockey Analytics Dashboard</h1>
+  <h1>Metro State Hockey Analytics Dashboard</h1>
 
   <a href="index.html">Back to Logger</a>
 
@@ -16,74 +17,126 @@
       Season:
       <select id="seasonSelect"></select>
     </label>
-
-    <label>
-      Game:
-      <select id="gameSelect"></select>
-    </label>
-
-    <button id="loadDashboardBtn" type="button">Load Dashboard</button>
   </section>
 
-  <section id="summary">
-    <h2>Summary</h2>
-    <p>Select a season and game to view stats.</p>
-  </section>
+  <div id="dashboardContent" style="display: none;">
+    <section>
+      <label>
+        Game:
+        <select id="gameSelect"></select>
+      </label>
+    </section>
 
-<section id="shotMapSection" style="display: none;">
-  <h2>Shot Map</h2>
+    <div class="dashboard-tabs">
+      <button type="button" onclick="showPanel('summaryPanel')">Summary</button>
+      <button type="button" onclick="showPanel('shotMapPanel')">Shot Map</button>
+      <button type="button" onclick="showPanel('playerTotalsPanel')">Player Totals</button>
+      <button type="button" onclick="showPanel('playerCardsPanel')">Season Player Cards</button>
+      <div class="dropdown">
+  <button type="button" class="dropbtn">
+    Roster ▼
+  </button>
+  <button type="button" onclick="showPanel('lineCombinationsPanel')">
+  Line Combinations
+</button>
 
-  <label>
-    Shot Map Type:
-    <select id="shotMapType">
-      <option value="for">Shots For</option>
-      <option value="against">Shots Against</option>
-    </select>
-  </label>
+  <div class="dropdown-content">
+    <a href="#" onclick="showPanel('seasonRosterPanel')">
+      Season Roster
+    </a>
 
-<div id="dashboardRink">
-  <div class="dash-line dash-goal-line left"></div>
-  <div class="dash-line dash-goal-line right"></div>
-  <div class="dash-line dash-blue-line left"></div>
-  <div class="dash-line dash-blue-line right"></div>
-  <div class="dash-line dash-center-line"></div>
-
-  <div class="dash-faceoff-circle left-zone top"></div>
-  <div class="dash-faceoff-circle left-zone bottom"></div>
-  <div class="dash-faceoff-circle right-zone top"></div>
-  <div class="dash-faceoff-circle right-zone bottom"></div>
-  <div class="dash-center-circle"></div>
-
-  <div class="dash-faceoff-dot left-top-dot"></div>
-  <div class="dash-faceoff-dot left-bottom-dot"></div>
-  <div class="dash-faceoff-dot right-top-dot"></div>
-  <div class="dash-faceoff-dot right-bottom-dot"></div>
-
-  <div class="dash-neutral-dot left-top-neutral"></div>
-  <div class="dash-neutral-dot left-bottom-neutral"></div>
-  <div class="dash-neutral-dot right-top-neutral"></div>
-  <div class="dash-neutral-dot right-bottom-neutral"></div>
-
-  <div class="dash-crease left-crease"></div>
-  <div class="dash-crease right-crease"></div>
-
-  <div id="shotMapDots"></div>
+    <a href="#" onclick="showPanel('gameRosterPanel')">
+      Game Roster
+    </a>
+  </div>
 </div>
+    </div>
 
-<div id="shotVideoSection" style="display: none;">
-  <h3>Shot Clip</h3>
-  <iframe
-    id="shotVideoFrame"
-    width="800"
-    height="450"
-    src=""
-    allowfullscreen
-  ></iframe>
-</div>
 
-</section>
 
-  <section>
+    <section id="summaryPanel" class="dashboard-panel">
+      <div id="summary">
+        <h2>Summary</h2>
+        <p>Select a game to view stats.</p>
+      </div>
+    </section>
+
+    <section id="shotMapPanel" class="dashboard-panel">
+      <div id="shotMapSection" style="display: none;">
+        <h2>Shot Map</h2>
+
+        <label>
+          Shot Map Type:
+          <select id="shotMapType">
+            <option value="for">Shots For</option>
+            <option value="against">Shots Against</option>
+          </select>
+        </label>
+
+        <div id="dashboardRink">
+          <div id="shotMapDots" class="shot-dots-layer"></div>
+        </div>
+
+        <div id="shotVideoSection" style="display: none;">
+          <h3>Shot Clip</h3>
+          <iframe
+            id="shotVideoFrame"
+            width="800"
+            height="450"
+            src=""
+            allowfullscreen
+          ></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section id="playerTotalsPanel" class="dashboard-panel">
+      <h2>Player Totals</h2>
+
+      <label>
+        Situation:
+        <select id="situationFilter">
+          <option value="all">All Situations</option>
+          <option value="even">Even Strength</option>
+          <option value="powerplay">Power Play</option>
+          <option value="shorthanded">Shorthanded</option>
+          <option value="5v5">5v5</option>
+          <option value="4v4">4v4</option>
+          <option value="3v3">3v3</option>
+          <option value="5v4">5v4</option>
+          <option value="5v3">5v3</option>
+          <option value="4v3">4v3</option>
+          <option value="6v5">6v5</option>
+          <option value="6v4">6v4</option>
+          <option value="6v3">6v3</option>
+          <option value="4v5">4v5</option>
+          <option value="3v5">3v5</option>
+          <option value="3v4">3v4</option>
+          <option value="5v6">5v6</option>
+          <option value="4v6">4v6</option>
+          <option value="3v6">3v6</option>
+        </select>
+      </label>
+
+      <div id="playerTotals"></div>
+    </section>
+
+    <section id="playerCardsPanel" class="dashboard-panel">
+      <h2>Season Player Cards</h2>
+
+      <button id="loadSeasonCardsBtn" type="button">Load Season Cards</button>
+
+      <label>
+        Player:
+        <select id="seasonCardPlayerSelect">
+          <option value="all">All Players</option>
+        </select>
+      </label>
+
+      <div id="playerCards"></div>
+    </section>
+
+    <section id="seasonRosterPanel" class="dashboard-panel">
   <h2>Season Roster</h2>
 
   <label>
@@ -101,90 +154,60 @@
   <div id="rosterList"></div>
 </section>
 
-  <section>
-  <h2>Player Totals</h2>
-  <div id="playerTotals"></div>
-</section>
+<section id="gameRosterPanel" class="dashboard-panel">
+  <h2>Game Roster</h2>
 
-<label>
-  Situation:
-  <select id="situationFilter">
-    <option value="all">All Situations</option>
-    <option value="even">Even Strength</option>
-    <option value="powerplay">Power Play</option>
-    <option value="shorthanded">Shorthanded</option>
-    <option value="5v5">5v5</option>
-    <option value="4v4">4v4</option>
-    <option value="3v3">3v3</option>
-    <option value="5v4">5v4</option>
-    <option value="5v3">5v3</option>
-    <option value="4v3">4v3</option>
-    <option value="6v5">6v5</option>
-    <option value="6v4">6v4</option>
-    <option value="6v3">6v3</option>
-    <option value="4v5">4v5</option>
-    <option value="3v5">3v5</option>
-    <option value="3v4">3v4</option>
-    <option value="5v6">5v6</option>
-    <option value="4v6">4v6</option>
-    <option value="3v6">3v6</option>
-  </select>
-
-</label>
-
-
-
-<section>
-  <h2>Season Player Cards</h2>
-  <button id="loadSeasonCardsBtn" type="button">Load Season Cards</button>
-  <div id="playerCards"></div>
-</section>
-
-<div class="player-card-shot-controls">
   <label>
     Game:
-    <select id="player-card-game-${player}">
-      <option value="all">All Games</option>
-      ${getSavedGames()
-        .filter((game) => game.seasonId === seasonId)
-        .map(
-          (game) =>
-            `<option value="${game.gameId}">${game.gameId}</option>`
-        )
-        .join("")}
-    </select>
+    <select id="gameRosterGameSelect"></select>
+  </label>
+
+  <h3>Add/Edit Game Roster Player</h3>
+
+  <label>
+    Player:
+    <select id="gameRosterPlayer"></select>
   </label>
 
   <label>
-    Type:
-    <select id="player-card-type-${player}">
-      <option value="shots">Shots</option>
-      <option value="shotAssists">Shot Assists</option>
+    Position:
+    <select id="gameRosterPosition">
+      <option value="forward">Forward</option>
+      <option value="defenseman">Defenseman</option>
+      <option value="goalie">Goalie</option>
     </select>
   </label>
 
-  <button
-    type="button"
-    onclick="renderPlayerCardShotMap('${player}')"
-  >
-    Load Shot Map
+  <button id="addGameRosterPlayerBtn" type="button">
+    Add Player
   </button>
-</div>
 
-<div class="player-card-rink">
-  <div class="player-card-dots" id="player-card-dots-${player}"></div>
-</div>
+  <div id="gameRosterList"></div>
+  </section>
 
-<div class="player-card-rink" id="player-card-rink-${player}">
-  <div class="player-card-dots" id="player-card-dots-${player}"></div>
+<section id="lineCombinationsPanel" class="dashboard-panel">
+  <h2>Line Combinations</h2>
+
+<label>
+  Game:
+  <select id="lineComboGameSelect"></select>
+</label>
+
+<div class="line-combo-buttons">
+  <button id="showForwardLinesBtn" type="button">Forward Lines</button>
+  <button id="showDefensePairsBtn" type="button">Defense Pairs</button>
 </div>
 
 <label>
-  Player:
-  <select id="seasonCardPlayerSelect">
-    <option value="all">All Players</option>
-  </select>
+  Minimum Total Shots:
+  <input id="lineComboMinShots" type="number" min="0" value="0" />
 </label>
+
+<div id="lineCombinationsContent"></div>
+
+  </section>
+
+  
 
   <script src="dashboard.js"></script>
 </body>
