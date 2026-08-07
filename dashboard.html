@@ -8,7 +8,27 @@
 </head>
 
 <body>
-  <h1>Metro State Hockey Analytics Dashboard</h1>
+
+  <div id="loginGate" style="max-width:400px; margin:60px auto; font-family:Arial, sans-serif;">
+    <h1>Coach Login</h1>
+    <label style="display:flex; flex-direction:column; font-weight:bold;">
+      Email:
+      <input id="loginEmailInput" type="email" placeholder="you@example.com" style="padding:8px; margin-top:4px;" />
+    </label>
+    <button id="sendLoginLinkBtn" type="button" style="margin-top:12px; padding:8px 16px;">
+      Send Magic Link
+    </button>
+    <p id="loginStatusMsg"></p>
+  </div>
+
+  <div id="appContent" style="display:none;">
+
+    <div id="loggedInBar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-family:Arial, sans-serif;">
+      <span>Logged in as <strong id="loggedInEmail"></strong> &mdash; <span id="loggedInTeam"></span></span>
+      <button id="logoutBtn" type="button">Log Out</button>
+    </div>
+
+    <h1>Metro State Hockey Analytics Dashboard</h1>
 
   <a href="index.html">Back to Logger</a>
 
@@ -20,12 +40,6 @@
   </section>
 
   <div id="dashboardContent" style="display: none;">
-    <section>
-      <label>
-        Game:
-        <select id="gameSelect"></select>
-      </label>
-    </section>
 
     <div class="dashboard-tabs">
       <button type="button" onclick="showPanel('summaryPanel')">Summary</button>
@@ -54,28 +68,74 @@
 
 
 
-    <section id="summaryPanel" class="dashboard-panel">
-      <div id="summary">
-        <h2>Summary</h2>
-        <p>Select a game to view stats.</p>
-      </div>
-    </section>
+<section id="summaryPanel" class="dashboard-panel">
+  <h2>Summary</h2>
+
+  <label>
+    Game:
+    <select id="summaryGameSelect"></select>
+  </label>
+
+  <div id="summary">
+    <p>Select a game to view stats.</p>
+  </div>
+</section>
 
     <section id="shotMapPanel" class="dashboard-panel">
       <div id="shotMapSection" style="display: none;">
         <h2>Shot Map</h2>
 
-        <label>
-          Shot Map Type:
-          <select id="shotMapType">
-            <option value="for">Shots For</option>
-            <option value="against">Shots Against</option>
-          </select>
-        </label>
+<div id="teamShotMapControls" class="shot-map-layout">
+  <div id="dashboardRink">
+    <div id="shotMapDots" class="shot-dots-layer"></div>
+  </div>
 
-        <div id="dashboardRink">
-          <div id="shotMapDots" class="shot-dots-layer"></div>
-        </div>
+  <div class="shot-map-controls">
+    <label>
+      Shot Type:
+      <select id="shotMapType">
+        <option value="for">Shots For</option>
+        <option value="against">Shots Against</option>
+      </select>
+    </label>
+
+    <label>
+      Situation:
+      <select id="shotMapSituation">
+        <option value="all">All Situations</option>
+        <option value="even">Even Strength</option>
+        <option value="powerplay">Power Play</option>
+        <option value="shorthanded">Shorthanded</option>
+        <option value="5v5">5v5</option>
+        <option value="4v4">4v4</option>
+        <option value="3v3">3v3</option>
+        <option value="5v4">5v4</option>
+        <option value="5v3">5v3</option>
+        <option value="4v3">4v3</option>
+        <option value="6v5">6v5</option>
+        <option value="6v4">6v4</option>
+        <option value="6v3">6v3</option>
+        <option value="4v5">4v5</option>
+        <option value="3v5">3v5</option>
+        <option value="3v4">3v4</option>
+        <option value="5v6">5v6</option>
+        <option value="4v6">4v6</option>
+        <option value="3v6">3v6</option>
+      </select>
+    </label>
+
+    <label>
+      Games:
+      <select id="shotMapGameSelect" multiple size="6"></select>
+    </label>
+
+    <label>
+  Players:
+  <select id="shotMapPlayerSelect" multiple size="8"></select>
+</label>
+  </div>
+</div>
+
 
         <div id="shotVideoSection" style="display: none;">
           <h3>Shot Clip</h3>
@@ -92,6 +152,11 @@
 
     <section id="playerTotalsPanel" class="dashboard-panel">
       <h2>Player Totals</h2>
+
+      <label>
+  Game:
+  <select id="playerTotalsGameSelect"></select>
+</label>
 
       <label>
         Situation:
@@ -117,6 +182,14 @@
           <option value="3v6">3v6</option>
         </select>
       </label>
+
+      <label>
+  View:
+  <select id="playerTotalsView">
+    <option value="simple">Simple View</option>
+    <option value="expanded">Expanded View</option>
+  </select>
+</label>
 
       <div id="playerTotals"></div>
     </section>
@@ -207,8 +280,10 @@
 
   </section>
 
-  
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="auth-gate.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

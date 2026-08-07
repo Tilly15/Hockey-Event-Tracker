@@ -19,11 +19,41 @@ const openSelectedGameBtn = document.getElementById("openSelectedGameBtn");
 const deleteSavedGameBtn = document.getElementById("deleteSavedGameBtn");
 const seasonIdInput = document.getElementById("seasonId");
 const savedSeasonsSelect = document.getElementById("savedSeasonsSelect");
+const newSeasonInput = document.getElementById("newSeasonInput");
+const createSeasonBtn = document.getElementById("createSeasonBtn");
+const createSeasonStatus = document.getElementById("createSeasonStatus");
+const newPlayerNumber = document.getElementById("newPlayerNumber");
+const newPlayerName = document.getElementById("newPlayerName");
+const addRosterPlayerBtn = document.getElementById("addRosterPlayerBtn");
+const addRosterStatus = document.getElementById("addRosterStatus");
+const rosterListEl = document.getElementById("rosterList");
+const newGameDate = document.getElementById("newGameDate");
+const createGameBtn = document.getElementById("createGameBtn");
+const createGameStatus = document.getElementById("createGameStatus");
+const gamesListEl = document.getElementById("gamesList");
+const newOpponentName = document.getElementById("newOpponentName");
+const addOpponentBtn = document.getElementById("addOpponentBtn");
+const addOpponentStatus = document.getElementById("addOpponentStatus");
+const opponentsListEl = document.getElementById("opponentsList");
+const gameOpponentSelect = document.getElementById("gameOpponentSelect");
+const gameRosterGameSelect = document.getElementById("gameRosterGameSelect");
+const gameRosterCheckboxesEl = document.getElementById("gameRosterCheckboxes");
+const saveGameRosterBtn = document.getElementById("saveGameRosterBtn");
+const saveGameRosterStatus = document.getElementById("saveGameRosterStatus");
+const eventGameSelect = document.getElementById("eventGameSelect");
+const dbEventStatus = document.getElementById("dbEventStatus");
+const saveVideosBtn = document.getElementById("saveVideosBtn");
+const saveVideosStatus = document.getElementById("saveVideosStatus");
+const gameVideosListEl = document.getElementById("gameVideosList");
 const period1AttackDirection = document.getElementById("period1AttackDirection");
 
 let selectedLocation = null;
 let events = [];
 let editingIndex = null;
+let loadedSeasons = [];
+let loadedGames = [];
+let loadedRoster = [];
+let loadedGameVideos = [];
 
 let youtubePlayer = null;
 
@@ -45,20 +75,28 @@ window.onYouTubeIframeAPIReady = function () {
 };
 
 function getFormValues() {
+  // The Player/assist fields are now dropdowns tied to real player IDs
+  // (needed for the database write below). This keeps the older local
+  // event table showing readable "#19 — Name" text instead of raw IDs.
+  const getSelectLabel = (id) => {
+    const el = document.getElementById(id);
+    return el.value ? el.selectedOptions[0].textContent : "";
+  };
+
   return {
     gameId: document.getElementById("gameId").value,
     period: document.getElementById("period").value,
     time: document.getElementById("time").value,
-    player: document.getElementById("player").value,
+    player: getSelectLabel("player"),
     eventType: document.getElementById("eventType").value,
-    shotAssist: document.getElementById("shotAssist").value,
-    playersOnIce: document.getElementById("playersOnIce").value,
-    shotAgainstPlayers: document.getElementById("shotAgainstPlayers").value,
+    shotAssist: getSelectLabel("shotAssist"),
+    playersOnIce: getCheckedPlayerLabels("playersOnIceCheckboxes"),
+    shotAgainstPlayers: getCheckedPlayerLabels("shotAgainstCheckboxes"),
     ledToShot: document.getElementById("ledToShot").value,
     entryExitType: document.getElementById("entryExitType").value,
     situation: document.getElementById("situation").value,
-    primaryAssist: document.getElementById("primaryAssist").value,
-    secondaryAssist: document.getElementById("secondaryAssist").value,
+    primaryAssist: getSelectLabel("primaryAssist"),
+    secondaryAssist: getSelectLabel("secondaryAssist"),
   };
 }
 
@@ -111,6 +149,21 @@ row.innerHTML = `
     const goToBtn = row.querySelector(".goto-btn");
 
 goToBtn.addEventListener("click", () => {
+  // Database-loaded events carry their own video URL directly (joined
+  // in when the game's history was loaded), so this takes priority
+  // over the old textarea-index lookup below.
+  if (event.videoUrl) {
+    loadYouTubeVideo(event.videoUrl);
+
+    setTimeout(() => {
+      if (youtubePlayer && typeof youtubePlayer.seekTo === "function") {
+        youtubePlayer.seekTo(Number(event.videoTime || 0), true);
+        youtubePlayer.playVideo();
+      }
+    }, 1000);
+    return;
+  }
+
   const urls = getYouTubeUrls();
   const eventVideoIndex = Number(event.videoIndex || 0);
   const eventVideoUrl = urls[eventVideoIndex];
@@ -268,6 +321,79 @@ try {
   renderEvents();
 });
 
+// Writes the same click to the real events table. A separate listener
+// on purpose, so the older local-array behavior above stays untouched.
+logBtn.addEventListener("click", async () => {
+  if (!selectedLocation) {
+    return; // already alerted by the listener above
+  }
+
+  // Editing a local-only row isn't the same as logging a new event --
+  // skip the database write in that case, to avoid an unintended
+  // duplicate row. (Real "edit an existing database event" is a
+  // separate feature, not part of this first pass.)
+  if (editingIndex !== null) {
+    return;
+  }
+
+  const gameId = eventGameSelect.value;
+
+  if (!gameId) {
+    alert("Select a game under \"Event Game (database)\" before logging.");
+    return;
+  }
+
+  if (!currentTeamId) {
+    return;
+  }
+
+  dbEventStatus.textContent = "Saving...";
+
+  const playerSelect = document.getElementById("player");
+  const playerId = playerSelect.value || null;
+
+  const shotAssistId = document.getElementById("shotAssist").value || null;
+  const primaryAssistId = document.getElementById("primaryAssist").value || null;
+  const secondaryAssistId = document.getElementById("secondaryAssist").value || null;
+
+  const playersOnIceFor = getCheckedPlayerIds("playersOnIceCheckboxes");
+  const playersOnIceAgainst = getCheckedPlayerIds("shotAgainstCheckboxes");
+
+  const selectedVideo = loadedGameVideos[Number(videoSelect.value || 0)] || null;
+  let videoTime = null;
+  try {
+    if (youtubePlayer && typeof youtubePlayer.getCurrentTime === "function") {
+      videoTime = Number(youtubePlayer.getCurrentTime().toFixed(2));
+    }
+  } catch (error) {
+    videoTime = null;
+  }
+
+  const { error } = await supabaseClient.from("events").insert({
+    team_id: currentTeamId,
+    game_id: gameId,
+    period: document.getElementById("period").value,
+    time_in_period: document.getElementById("time").value,
+    event_type: document.getElementById("eventType").value,
+    player_id: playerId,
+    shot_assist_player_id: shotAssistId,
+    primary_assist_player_id: primaryAssistId,
+    secondary_assist_player_id: secondaryAssistId,
+    players_on_ice_for: playersOnIceFor.length > 0 ? playersOnIceFor : null,
+    players_on_ice_against: playersOnIceAgainst.length > 0 ? playersOnIceAgainst : null,
+    situation: document.getElementById("situation").value,
+    entry_exit_type: document.getElementById("entryExitType").value,
+    x: selectedLocation.x,
+    y: selectedLocation.y,
+    video_id: selectedVideo ? selectedVideo.id : null,
+    video_time: videoTime,
+  });
+
+  dbEventStatus.textContent = error
+    ? `Error: ${error.message}`
+    : "Saved to database.";
+});
+
   deleteLastBtn.addEventListener("click", () => {
   if (events.length === 0) {
     alert("No events to delete.");
@@ -297,28 +423,26 @@ forward5Btn.addEventListener("click", () => {
 });
 
 loadYoutubeBtn.addEventListener("click", () => {
-  refreshVideoSelect();
-
-  const urls = getYouTubeUrls();
   const selectedIndex = Number(videoSelect.value || 0);
+  const video = loadedGameVideos[selectedIndex];
 
-  if (!urls[selectedIndex]) {
-    alert("Please add at least one YouTube URL.");
+  if (!video) {
+    alert("Select an Event Game above, then save a video URL first.");
     return;
   }
 
-  loadYouTubeVideo(urls[selectedIndex]);
+  loadYouTubeVideo(video.url);
 });
 
 videoSelect.addEventListener("change", () => {
-  const urls = getYouTubeUrls();
   const selectedIndex = Number(videoSelect.value);
+  const video = loadedGameVideos[selectedIndex];
 
-  if (!urls[selectedIndex]) {
+  if (!video) {
     return;
   }
 
-  loadYouTubeVideo(urls[selectedIndex]);
+  loadYouTubeVideo(video.url);
 });
 
 function getSavedGames() {
@@ -508,5 +632,647 @@ function refreshSavedSeasonsSelect() {
   });
 }
 
+// ---- Database-backed version, added while migrating off localStorage ----
+// Called from auth-gate.js once we know which team the logged-in user
+// belongs to. Overwrites the localStorage-derived list above with the
+// real thing once it arrives.
+async function loadSeasonsFromDatabase(teamId) {
+  const { data, error } = await supabaseClient
+    .from("seasons")
+    .select("id, label")
+    .eq("team_id", teamId)
+    .order("label");
+
+  if (error) {
+    console.error("Could not load seasons from database:", error.message);
+    return;
+  }
+
+  loadedSeasons = data;
+
+  savedSeasonsSelect.innerHTML = `<option value="">Select season...</option>`;
+
+  data.forEach((season) => {
+    const option = document.createElement("option");
+    option.value = season.label;
+    option.textContent = season.label;
+    savedSeasonsSelect.appendChild(option);
+  });
+}
+
+// The season dropdown's value is still the label text (to avoid breaking
+// the localStorage-based game filtering above), so anything that needs
+// the real database id -- like roster rows -- looks it up here.
+function getSelectedSeasonId() {
+  const match = loadedSeasons.find((season) => season.label === savedSeasonsSelect.value);
+  return match ? match.id : null;
+}
+
+async function loadRosterFromDatabase(seasonId) {
+  const { data, error } = await supabaseClient
+    .from("roster_players")
+    .select("id, jersey_number, name")
+    .eq("season_id", seasonId)
+    .order("jersey_number");
+
+  if (error) {
+    console.error("Could not load roster:", error.message);
+    return;
+  }
+
+  loadedRoster = data;
+  rosterListEl.innerHTML = "";
+
+  data.forEach((player) => {
+    const row = document.createElement("p");
+    row.textContent = `#${player.jersey_number} — ${player.name}`;
+    rosterListEl.appendChild(row);
+  });
+}
+
+async function loadGamesFromDatabase(seasonId) {
+  const { data, error } = await supabaseClient
+    .from("games")
+    .select("id, game_date, opponents(name)")
+    .eq("season_id", seasonId)
+    .order("game_date");
+
+  if (error) {
+    console.error("Could not load games:", error.message);
+    return;
+  }
+
+  loadedGames = data;
+  gamesListEl.innerHTML = "";
+  gameRosterGameSelect.innerHTML = `<option value="">Select game...</option>`;
+  gameRosterCheckboxesEl.innerHTML = "";
+  eventGameSelect.innerHTML = `<option value="">Select game...</option>`;
+  document.getElementById("player").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("shotAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("primaryAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("secondaryAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("playersOnIceCheckboxes").innerHTML = "";
+  document.getElementById("shotAgainstCheckboxes").innerHTML = "";
+
+  data.forEach((game) => {
+    const opponentText = game.opponents ? ` vs ${game.opponents.name}` : "";
+    const label = `${game.game_date || "(no date set)"}${opponentText}`;
+
+    const row = document.createElement("p");
+    row.textContent = label;
+    gamesListEl.appendChild(row);
+
+    const rosterOption = document.createElement("option");
+    rosterOption.value = game.id;
+    rosterOption.textContent = label;
+    gameRosterGameSelect.appendChild(rosterOption);
+
+    const eventOption = document.createElement("option");
+    eventOption.value = game.id;
+    eventOption.textContent = label;
+    eventGameSelect.appendChild(eventOption);
+  });
+}
+
+// Opponents belong to the whole team, not a specific season, so this
+// loads once per login rather than every time the season changes.
+async function loadOpponentsFromDatabase(teamId) {
+  const { data, error } = await supabaseClient
+    .from("opponents")
+    .select("id, name")
+    .eq("team_id", teamId)
+    .order("name");
+
+  if (error) {
+    console.error("Could not load opponents:", error.message);
+    return;
+  }
+
+  opponentsListEl.innerHTML = "";
+  data.forEach((opponent) => {
+    const row = document.createElement("p");
+    row.textContent = opponent.name;
+    opponentsListEl.appendChild(row);
+  });
+
+  gameOpponentSelect.innerHTML = `<option value="">No opponent selected</option>`;
+  data.forEach((opponent) => {
+    const option = document.createElement("option");
+    option.value = opponent.id;
+    option.textContent = opponent.name;
+    gameOpponentSelect.appendChild(option);
+  });
+}
+
+async function loadGameRoster(gameId) {
+  const { data, error } = await supabaseClient
+    .from("game_rosters")
+    .select("roster_player_id, player_position")
+    .eq("game_id", gameId);
+
+  if (error) {
+    console.error("Could not load game roster:", error.message);
+    return;
+  }
+
+  renderGameRosterCheckboxes(data);
+}
+
+// Builds one checkbox + position dropdown per player on the season
+// roster, pre-checked/pre-set based on whatever's already saved for
+// this game (so re-opening a game you've already set shows its state).
+function renderGameRosterCheckboxes(existingRows) {
+  const existingByPlayer = {};
+  existingRows.forEach((row) => {
+    existingByPlayer[row.roster_player_id] = row.player_position;
+  });
+
+  gameRosterCheckboxesEl.innerHTML = "";
+
+  loadedRoster.forEach((player) => {
+    const wrapper = document.createElement("div");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `gr-check-${player.id}`;
+    checkbox.dataset.playerId = player.id;
+    checkbox.checked = Boolean(existingByPlayer[player.id]);
+
+    const label = document.createElement("label");
+    label.htmlFor = checkbox.id;
+    label.textContent = ` #${player.jersey_number} — ${player.name} `;
+
+    const positionSelect = document.createElement("select");
+    positionSelect.id = `gr-pos-${player.id}`;
+
+    ["forward", "defenseman", "goalie"].forEach((pos) => {
+      const option = document.createElement("option");
+      option.value = pos;
+      option.textContent = pos;
+      option.selected = existingByPlayer[player.id] === pos;
+      positionSelect.appendChild(option);
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(label);
+    wrapper.appendChild(positionSelect);
+    gameRosterCheckboxesEl.appendChild(wrapper);
+  });
+}
+
+gameRosterGameSelect.addEventListener("change", () => {
+  const gameId = gameRosterGameSelect.value;
+  gameRosterCheckboxesEl.innerHTML = "";
+
+  if (gameId) {
+    loadGameRoster(gameId);
+  }
+});
+
+// Populates the event-logging Player dropdown (and, since Pass 2,
+// Shot Assist / Primary Assist / Secondary Assist / both on-ice
+// checkbox groups) with only the players actually dressed for this
+// specific game -- one fetch, five UI pieces built from it.
+async function loadEventGameRoster(gameId) {
+  const { data, error } = await supabaseClient
+    .from("game_rosters")
+    .select("roster_player_id, roster_players(jersey_number, name)")
+    .eq("game_id", gameId);
+
+  if (error) {
+    console.error("Could not load game roster for event logging:", error.message);
+    return;
+  }
+
+  const players = data
+    .map((row) => ({
+      id: row.roster_player_id,
+      jersey_number: row.roster_players.jersey_number,
+      name: row.roster_players.name,
+    }))
+    .sort((a, b) => a.jersey_number - b.jersey_number);
+
+  populatePlayerSelect(document.getElementById("player"), players);
+  populatePlayerSelect(document.getElementById("shotAssist"), players);
+  populatePlayerSelect(document.getElementById("primaryAssist"), players);
+  populatePlayerSelect(document.getElementById("secondaryAssist"), players);
+  populatePlayerCheckboxes(document.getElementById("playersOnIceCheckboxes"), players, "poi");
+  populatePlayerCheckboxes(document.getElementById("shotAgainstCheckboxes"), players, "poa");
+}
+
+function populatePlayerSelect(selectEl, players) {
+  selectEl.innerHTML = `<option value="">Select player...</option>`;
+  players.forEach((player) => {
+    const option = document.createElement("option");
+    option.value = player.id;
+    option.textContent = `#${player.jersey_number} — ${player.name}`;
+    selectEl.appendChild(option);
+  });
+}
+
+function populatePlayerCheckboxes(containerEl, players, idPrefix) {
+  containerEl.innerHTML = "";
+  players.forEach((player) => {
+    const wrapper = document.createElement("span");
+    wrapper.style.marginRight = "12px";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `${idPrefix}-${player.id}`;
+    checkbox.dataset.playerId = player.id;
+    checkbox.dataset.playerLabel = `#${player.jersey_number} — ${player.name}`;
+
+    const label = document.createElement("label");
+    label.htmlFor = checkbox.id;
+    label.title = player.name;
+    label.textContent = ` #${player.jersey_number}`;
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(label);
+    containerEl.appendChild(wrapper);
+  });
+}
+
+function getCheckedPlayerIds(containerId) {
+  const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+  return Array.from(checkboxes).map((checkbox) => checkbox.dataset.playerId);
+}
+
+function getCheckedPlayerLabels(containerId) {
+  const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+  return Array.from(checkboxes)
+    .map((checkbox) => checkbox.dataset.playerLabel)
+    .join(", ");
+}
+
+async function loadGameVideosFromDatabase(gameId) {
+  const { data, error } = await supabaseClient
+    .from("game_videos")
+    .select("id, url, sort_order")
+    .eq("game_id", gameId)
+    .order("sort_order");
+
+  if (error) {
+    console.error("Could not load game videos:", error.message);
+    return;
+  }
+
+  loadedGameVideos = data;
+
+  videoSelect.innerHTML = "";
+  gameVideosListEl.innerHTML = "";
+
+  data.forEach((video, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `Video ${index + 1}`;
+    videoSelect.appendChild(option);
+
+    const row = document.createElement("p");
+    row.textContent = `Video ${index + 1}: ${video.url}`;
+    gameVideosListEl.appendChild(row);
+  });
+}
+
+// Resolves player IDs to readable "#19 -- Name" labels using whichever
+// season roster is currently loaded, for displaying database events
+// in the (otherwise local-array-driven) events table below.
+function buildRosterLookupFromLoadedRoster() {
+  const lookup = {};
+  loadedRoster.forEach((player) => {
+    lookup[player.id] = `#${player.jersey_number} — ${player.name}`;
+  });
+  return lookup;
+}
+
+async function loadDbEventsForGame(gameId) {
+  const { data, error } = await supabaseClient
+    .from("events")
+    .select("*, game_videos(url)")
+    .eq("game_id", gameId)
+    .order("created_at");
+
+  if (error) {
+    console.error("Could not load existing events for this game:", error.message);
+    return;
+  }
+
+  const rosterLookup = buildRosterLookupFromLoadedRoster();
+  const gameLabel = eventGameSelect.selectedOptions[0]
+    ? eventGameSelect.selectedOptions[0].textContent
+    : "";
+
+  const resolveOne = (id) => (id ? rosterLookup[id] || "" : "");
+  const resolveMany = (ids) =>
+    (ids || []).map((id) => rosterLookup[id] || "").filter(Boolean).join(", ");
+
+  events = data.map((dbEvent) => ({
+    id: dbEvent.id,
+    gameId: gameLabel,
+    period: dbEvent.period,
+    time: dbEvent.time_in_period,
+    player: resolveOne(dbEvent.player_id),
+    eventType: dbEvent.event_type,
+    x: dbEvent.x,
+    y: dbEvent.y,
+    shotAssist: resolveOne(dbEvent.shot_assist_player_id),
+    playersOnIce: resolveMany(dbEvent.players_on_ice_for),
+    shotAgainstPlayers: resolveMany(dbEvent.players_on_ice_against),
+    ledToShot: "",
+    entryExitType: dbEvent.entry_exit_type || "",
+    situation: dbEvent.situation || "",
+    videoTime: dbEvent.video_time || "",
+    primaryAssist: resolveOne(dbEvent.primary_assist_player_id),
+    secondaryAssist: resolveOne(dbEvent.secondary_assist_player_id),
+    videoUrl: dbEvent.game_videos ? dbEvent.game_videos.url : null,
+  }));
+
+  renderEvents();
+}
+
+eventGameSelect.addEventListener("change", () => {
+  const gameId = eventGameSelect.value;
+
+  document.getElementById("player").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("shotAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("primaryAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("secondaryAssist").innerHTML = `<option value="">Select player...</option>`;
+  document.getElementById("playersOnIceCheckboxes").innerHTML = "";
+  document.getElementById("shotAgainstCheckboxes").innerHTML = "";
+  loadedGameVideos = [];
+  videoSelect.innerHTML = "";
+  gameVideosListEl.innerHTML = "";
+  events = [];
+  renderEvents();
+
+  if (gameId) {
+    loadEventGameRoster(gameId);
+    loadGameVideosFromDatabase(gameId);
+    loadDbEventsForGame(gameId);
+  }
+});
+
+savedSeasonsSelect.addEventListener("change", () => {
+  const seasonId = getSelectedSeasonId();
+  rosterListEl.innerHTML = "";
+  gamesListEl.innerHTML = "";
+  loadedGames = [];
+
+  if (seasonId) {
+    loadRosterFromDatabase(seasonId);
+    loadGamesFromDatabase(seasonId);
+  }
+});
+
 refreshSavedSeasonsSelect();
 refreshSavedGamesSelect();
+
+createSeasonBtn.addEventListener("click", async () => {
+  const label = newSeasonInput.value.trim();
+
+  if (!label) {
+    createSeasonStatus.textContent = "Enter a season label first.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    createSeasonStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  createSeasonStatus.textContent = "Creating...";
+
+  const { error } = await supabaseClient
+    .from("seasons")
+    .insert({ team_id: currentTeamId, label });
+
+  if (error) {
+    createSeasonStatus.textContent = `Error: ${error.message}`;
+    return;
+  }
+
+  createSeasonStatus.textContent = "Season created.";
+  newSeasonInput.value = "";
+
+  // Re-read from the database rather than guessing the new list locally --
+  // this also confirms the write actually landed, not just that it didn't error.
+  loadSeasonsFromDatabase(currentTeamId);
+});
+
+addRosterPlayerBtn.addEventListener("click", async () => {
+  const jerseyNumber = newPlayerNumber.value.trim();
+  const name = newPlayerName.value.trim();
+  const seasonId = getSelectedSeasonId();
+
+  if (!seasonId) {
+    addRosterStatus.textContent = "Select a season first.";
+    return;
+  }
+
+  if (!jerseyNumber || !name) {
+    addRosterStatus.textContent = "Enter both a jersey number and a name.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    addRosterStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  addRosterStatus.textContent = "Adding...";
+
+  const { error } = await supabaseClient
+    .from("roster_players")
+    .insert({
+      team_id: currentTeamId,
+      season_id: seasonId,
+      jersey_number: Number(jerseyNumber),
+      name,
+    });
+
+  if (error) {
+    addRosterStatus.textContent = `Error: ${error.message}`;
+    return;
+  }
+
+  addRosterStatus.textContent = "Player added.";
+  newPlayerNumber.value = "";
+  newPlayerName.value = "";
+
+  loadRosterFromDatabase(seasonId);
+});
+
+createGameBtn.addEventListener("click", async () => {
+  const gameDate = newGameDate.value;
+  const seasonId = getSelectedSeasonId();
+  const opponentId = gameOpponentSelect.value || null;
+
+  if (!seasonId) {
+    createGameStatus.textContent = "Select a season first.";
+    return;
+  }
+
+  if (!gameDate) {
+    createGameStatus.textContent = "Pick a date first.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    createGameStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  createGameStatus.textContent = "Creating...";
+
+  const { error } = await supabaseClient
+    .from("games")
+    .insert({
+      team_id: currentTeamId,
+      season_id: seasonId,
+      game_date: gameDate,
+      opponent_id: opponentId,
+    });
+
+  if (error) {
+    createGameStatus.textContent = `Error: ${error.message}`;
+    return;
+  }
+
+  createGameStatus.textContent = "Game created.";
+  newGameDate.value = "";
+
+  loadGamesFromDatabase(seasonId);
+});
+
+addOpponentBtn.addEventListener("click", async () => {
+  const name = newOpponentName.value.trim();
+
+  if (!name) {
+    addOpponentStatus.textContent = "Enter an opponent name first.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    addOpponentStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  addOpponentStatus.textContent = "Adding...";
+
+  const { error } = await supabaseClient
+    .from("opponents")
+    .insert({ team_id: currentTeamId, name });
+
+  if (error) {
+    addOpponentStatus.textContent = `Error: ${error.message}`;
+    return;
+  }
+
+  addOpponentStatus.textContent = "Opponent added.";
+  newOpponentName.value = "";
+
+  loadOpponentsFromDatabase(currentTeamId);
+});
+
+saveGameRosterBtn.addEventListener("click", async () => {
+  const gameId = gameRosterGameSelect.value;
+
+  if (!gameId) {
+    saveGameRosterStatus.textContent = "Select a game first.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    saveGameRosterStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  saveGameRosterStatus.textContent = "Saving...";
+
+  const rowsToInsert = [];
+  loadedRoster.forEach((player) => {
+    const checkbox = document.getElementById(`gr-check-${player.id}`);
+    if (checkbox && checkbox.checked) {
+      const positionSelect = document.getElementById(`gr-pos-${player.id}`);
+      rowsToInsert.push({
+        team_id: currentTeamId,
+        game_id: gameId,
+        roster_player_id: player.id,
+        player_position: positionSelect.value,
+      });
+    }
+  });
+
+  // Simplest correct approach: clear this game's roster, then re-insert
+  // whoever's checked. Fine at this scale -- a handful of players per game.
+  const { error: deleteError } = await supabaseClient
+    .from("game_rosters")
+    .delete()
+    .eq("game_id", gameId);
+
+  if (deleteError) {
+    saveGameRosterStatus.textContent = `Error: ${deleteError.message}`;
+    return;
+  }
+
+  if (rowsToInsert.length > 0) {
+    const { error: insertError } = await supabaseClient
+      .from("game_rosters")
+      .insert(rowsToInsert);
+
+    if (insertError) {
+      saveGameRosterStatus.textContent = `Error: ${insertError.message}`;
+      return;
+    }
+  }
+
+  saveGameRosterStatus.textContent = "Game roster saved.";
+  loadGameRoster(gameId);
+});
+
+saveVideosBtn.addEventListener("click", async () => {
+  const gameId = eventGameSelect.value;
+
+  if (!gameId) {
+    saveVideosStatus.textContent = "Select an Event Game first.";
+    return;
+  }
+
+  if (!currentTeamId) {
+    saveVideosStatus.textContent = "Not logged in yet.";
+    return;
+  }
+
+  // Skip any URL that's already saved for this game, so re-clicking
+  // Save Videos with the same text still in the box doesn't create
+  // duplicate rows.
+  const newUrls = getYouTubeUrls().filter(
+    (url) => !loadedGameVideos.some((video) => video.url === url)
+  );
+
+  if (newUrls.length === 0) {
+    saveVideosStatus.textContent = "No new URLs to add.";
+    return;
+  }
+
+  saveVideosStatus.textContent = "Saving...";
+
+  const rowsToInsert = newUrls.map((url, index) => ({
+    team_id: currentTeamId,
+    game_id: gameId,
+    url,
+    sort_order: loadedGameVideos.length + index,
+  }));
+
+  const { error } = await supabaseClient.from("game_videos").insert(rowsToInsert);
+
+  if (error) {
+    saveVideosStatus.textContent = `Error: ${error.message}`;
+    return;
+  }
+
+  saveVideosStatus.textContent = "Videos saved.";
+  youtubeUrls.value = "";
+
+  loadGameVideosFromDatabase(gameId);
+});

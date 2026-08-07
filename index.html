@@ -10,9 +10,29 @@
 
 
 <body>
-  <a href="dashboard.html">Open Dashboard</a>
 
-  <h1>Hockey Event Tracker</h1>
+  <div id="loginGate" style="max-width:400px; margin:60px auto; font-family:Arial, sans-serif;">
+    <h1>Coach Login</h1>
+    <label style="display:flex; flex-direction:column; font-weight:bold;">
+      Email:
+      <input id="loginEmailInput" type="email" placeholder="you@example.com" style="padding:8px; margin-top:4px;" />
+    </label>
+    <button id="sendLoginLinkBtn" type="button" style="margin-top:12px; padding:8px 16px;">
+      Send Magic Link
+    </button>
+    <p id="loginStatusMsg"></p>
+  </div>
+
+  <div id="appContent" style="display:none;">
+
+    <div id="loggedInBar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-family:Arial, sans-serif;">
+      <span>Logged in as <strong id="loggedInEmail"></strong> &mdash; <span id="loggedInTeam"></span></span>
+      <button id="logoutBtn" type="button">Log Out</button>
+    </div>
+
+    <a href="dashboard.html">Open Dashboard</a>
+
+    <h1>Hockey Event Tracker</h1>
 
   <div class="app-layout">
 
@@ -20,6 +40,13 @@
     <main class="tracker-panel">
 
       <section class="controls">
+
+        <label>
+          Event Game (database):
+          <select id="eventGameSelect">
+            <option value="">Select game...</option>
+          </select>
+        </label>
 
         <label>
           Game ID:
@@ -84,31 +111,23 @@
 
         <label>
           Player:
-          <input id="player" type="text" placeholder="#19" />
+          <select id="player">
+            <option value="">Select player...</option>
+          </select>
         </label>
 
         <label>
           Shot Assist:
-          <input id="shotAssist" type="text" placeholder="#12" />
+          <select id="shotAssist">
+            <option value="">Select player...</option>
+          </select>
         </label>
 
-        <label>
-          Players On Ice:
-          <input
-            id="playersOnIce"
-            type="text"
-            placeholder="#8, #12, #19, #22, #31"
-          />
-        </label>
+        <label>Players On Ice:</label>
+        <div id="playersOnIceCheckboxes"></div>
 
-        <label>
-          Opponent Shot - Our Players On Ice:
-          <input
-            id="shotAgainstPlayers"
-            type="text"
-            placeholder="#8, #12, #19, #22, #31"
-          />
-        </label>
+        <label>Opponent Shot - Our Players On Ice:</label>
+        <div id="shotAgainstCheckboxes"></div>
 
         <label>
           Entry/Exit Type:
@@ -132,12 +151,16 @@
 
         <label>
   Primary Assist:
-  <input id="primaryAssist" type="text" placeholder="#12" />
+  <select id="primaryAssist">
+    <option value="">Select player...</option>
+  </select>
 </label>
 
 <label>
   Secondary Assist:
-  <input id="secondaryAssist" type="text" placeholder="#22" />
+  <select id="secondaryAssist">
+    <option value="">Select player...</option>
+  </select>
 </label>
 
 <label>
@@ -190,6 +213,7 @@
       <!-- BUTTONS -->
       <div class="event-buttons">
         <button id="logBtn" type="button">Log Event</button>
+        <span id="dbEventStatus"></span>
 
         <button id="exportBtn" type="button">Export CSV</button>
 
@@ -207,11 +231,89 @@
   <option value="">Select season...</option>
 </select>
 
+        <input id="newSeasonInput" type="text" placeholder="New season, e.g. 2026-27" />
+        <button id="createSeasonBtn" type="button">Create Season</button>
+        <span id="createSeasonStatus"></span>
+
 <button id="openSelectedGameBtn" type="button">Open Selected Game</button>
 
 <button id="deleteSavedGameBtn" type="button">Delete Saved Game</button>
 
       </div>
+
+      <section class="roster-section">
+        <h2>Roster</h2>
+        <p>Players for the season selected above.</p>
+
+        <label>
+          Jersey #:
+          <input id="newPlayerNumber" type="text" placeholder="19" />
+        </label>
+
+        <label>
+          Name:
+          <input id="newPlayerName" type="text" placeholder="John Smith" />
+        </label>
+
+        <button id="addRosterPlayerBtn" type="button">Add Player</button>
+        <span id="addRosterStatus"></span>
+
+        <div id="rosterList"></div>
+      </section>
+
+      <section class="opponents-section">
+        <h2>Opponents</h2>
+        <p>Opponents for your team, shared across all seasons.</p>
+
+        <label>
+          Name:
+          <input id="newOpponentName" type="text" placeholder="Colorado College" />
+        </label>
+
+        <button id="addOpponentBtn" type="button">Add Opponent</button>
+        <span id="addOpponentStatus"></span>
+
+        <div id="opponentsList"></div>
+      </section>
+
+      <section class="games-section">
+        <h2>Games</h2>
+        <p>Games for the season selected above.</p>
+
+        <label>
+          Date:
+          <input id="newGameDate" type="date" />
+        </label>
+
+        <label>
+          Opponent (optional):
+          <select id="gameOpponentSelect">
+            <option value="">No opponent selected</option>
+          </select>
+        </label>
+
+        <button id="createGameBtn" type="button">Create Game</button>
+        <span id="createGameStatus"></span>
+
+        <div id="gamesList"></div>
+      </section>
+
+      <section class="game-roster-section">
+        <h2>Game Roster</h2>
+        <p>Who suited up for a specific game, and what position they played.</p>
+
+        <label>
+          Game:
+          <select id="gameRosterGameSelect">
+            <option value="">Select game...</option>
+          </select>
+        </label>
+
+        <div id="gameRosterCheckboxes"></div>
+
+        <button id="saveGameRosterBtn" type="button">Save Game Roster</button>
+        <span id="saveGameRosterStatus"></span>
+      </section>
 
     </main>
 
@@ -219,13 +321,18 @@
     <aside class="video-panel">
 
       <label>
-  YouTube URLs:
+  YouTube URLs (for the Event Game selected above):
   <textarea
     id="youtubeUrls"
-    placeholder="Paste one YouTube URL per line"
+    placeholder="Paste one or more YouTube URLs, one per line, then click Save Videos"
     rows="4"
   ></textarea>
 </label>
+
+<button id="saveVideosBtn" type="button">Save Videos</button>
+<span id="saveVideosStatus"></span>
+
+<div id="gameVideosList"></div>
 
 <label>
   Active Video:
@@ -301,6 +408,10 @@
 
   </section>
 
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="auth-gate.js"></script>
   <script src="app.js"></script>
 
 </body>

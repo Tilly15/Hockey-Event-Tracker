@@ -326,3 +326,39 @@
 .dropdown:hover .dropdown-content {
   display: block;
 }
+
+.shot-dots-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.shot-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  pointer-events: auto;
+}
+
+.goal-dot {
+  width: 14px;
+  height: 14px;
+  background: rgb(0, 255, 64);
+}
+
+.shot-map-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.shot-map-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

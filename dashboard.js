@@ -1,5 +1,4 @@
 const seasonSelect = document.getElementById("seasonSelect");
-const gameSelect = document.getElementById("gameSelect");
 const summary = document.getElementById("summary");
 const playerTotals = document.getElementById("playerTotals");
 const situationFilter = document.getElementById("situationFilter");
@@ -25,6 +24,12 @@ const showForwardLinesBtn = document.getElementById("showForwardLinesBtn");
 const showDefensePairsBtn = document.getElementById("showDefensePairsBtn");
 const lineCombinationsContent = document.getElementById("lineCombinationsContent");
 const lineComboMinShots = document.getElementById("lineComboMinShots");
+const shotMapSituation = document.getElementById("shotMapSituation");
+const shotMapGameSelect = document.getElementById("shotMapGameSelect");
+const shotMapPlayerSelect = document.getElementById("shotMapPlayerSelect");
+const summaryGameSelect = document.getElementById("summaryGameSelect");
+const playerTotalsGameSelect = document.getElementById("playerTotalsGameSelect");
+const playerTotalsView = document.getElementById("playerTotalsView");
 
 document.getElementById("dashboardRink").innerHTML =
   getRinkMarkup("shotMapDots");
@@ -38,6 +43,12 @@ let currentSortColumn = "player";
 let currentSortAscending = true;
 
 let currentEvents = [];
+
+// Added for the database-backed shot map -- kept separate from the
+// localStorage-driven state above rather than merged into it.
+let loadedSeasons = [];
+let dbEventsForShotMap = [];
+let dbEventsForPlayerTotals = [];
 
 let currentLineComboRows = [];
 let currentLineComboType = "forward";
@@ -116,32 +127,8 @@ if (gameId === "all") {
     const filteredEvents = filterEventsBySituation(currentEvents);
 
   renderPlayerTotals(filteredEvents);
-  if (gameId === "all") {
-  shotMapSection.style.display = "none";
-  shotMapDots.innerHTML = "";
-} else {
   shotMapSection.style.display = "block";
-  renderShotMap(filteredEvents);
-}
-
-  summary.innerHTML = `
-    <h2>Summary</h2>
-    <p><strong>Season:</strong> ${seasonId}</p>
-    <p><strong>Game:</strong> ${gameId === "all" ? "All Games" : gameId}</p>
-    <p><strong>Total Events:</strong> ${filteredEvents.length}</p>
-    <p><strong>Shots:</strong> ${
-      events.filter((event) => event.eventType === "shot").length
-    }</p>
-    <p><strong>Opponent Shots:</strong> ${
-      events.filter((event) => event.eventType === "opponent_shot").length
-    }</p>
-    <p><strong>Zone Entries:</strong> ${
-      events.filter((event) => event.eventType === "zone_entry").length
-    }</p>
-    <p><strong>Zone Exits:</strong> ${
-      events.filter((event) => event.eventType === "zone_exit").length
-    }</p>
-  `;
+  renderTeamShotMap(filteredEvents);
 }
 
 function parsePlayerList(playerList) {
@@ -355,6 +342,10 @@ function calculatePlayerTotals(events) {
       Number(stats.onIceShootingPercentage) +
       Number(stats.onIceSavePercentage)
     ).toFixed(1);
+
+    stats.penaltyDifferential =
+    stats.drawnPenalties - stats.penalties;
+
   });
 
   return totals;
@@ -400,75 +391,101 @@ function sortPlayerTotals(column) {
 }
 
 function renderSortedTotals(sortedEntries) {
+  const view = playerTotalsView.value;
+
+  const simpleHeaders = `
+    <th onclick="sortPlayerTotals('player')">Player</th>
+    <th onclick="sortPlayerTotals('goals')">Goals</th>
+    <th onclick="sortPlayerTotals('assists')">Assists</th>
+    <th onclick="sortPlayerTotals('points')">Points</th>
+    <th onclick="sortPlayerTotals('shots')">Shots</th>
+    <th onclick="sortPlayerTotals('shotAssists')">Shot Assists</th>
+    <th onclick="sortPlayerTotals('controlledEntries')">Controlled Entries</th>
+    <th onclick="sortPlayerTotals('controlledExits')">Controlled Exits</th>
+    <th onclick="sortPlayerTotals('penalties')">Penalties</th>
+    <th onclick="sortPlayerTotals('drawnPenalties')">Drawn Penalties</th>
+    <th onclick="sortPlayerTotals('onIceShotsFor')">On-Ice Shots For</th>
+    <th onclick="sortPlayerTotals('onIceShotsAgainst')">On-Ice Shots Against</th>
+    <th onclick="sortPlayerTotals('shotDifferential')">Shot Differential</th>
+    <th onclick="sortPlayerTotals('onIceGoalsFor')">On-Ice Goals For</th>
+    <th onclick="sortPlayerTotals('onIceGoalsAgainst')">On-Ice Goals Against</th>
+    <th onclick="sortPlayerTotals('onIceGoalDifferential')">Goal Differential</th>
+  `;
+
+  const expandedHeaders = `
+    ${simpleHeaders}
+    <th onclick="sortPlayerTotals('carryEntries')">Carry Entries</th>
+    <th onclick="sortPlayerTotals('passEntries')">Pass Entries</th>
+    <th onclick="sortPlayerTotals('dumpEntries')">Dump Entries</th>
+    <th onclick="sortPlayerTotals('failedEntries')">Failed Entries</th>
+    <th onclick="sortPlayerTotals('carryExits')">Carry Exits</th>
+    <th onclick="sortPlayerTotals('passExits')">Pass Exits</th>
+    <th onclick="sortPlayerTotals('dumpExits')">Dump Exits</th>
+    <th onclick="sortPlayerTotals('failedExits')">Failed Exits</th>
+    <th onclick="sortPlayerTotals('primaryAssists')">Primary Assists</th>
+    <th onclick="sortPlayerTotals('secondaryAssists')">Secondary Assists</th>
+    <th onclick="sortPlayerTotals('penaltyDifferential')">Penalty Differential</th>
+    <th onclick="sortPlayerTotals('individualShootingPercentage')">Individual SH%</th>
+    <th onclick="sortPlayerTotals('onIceShootingPercentage')">On-Ice SH%</th>
+    <th onclick="sortPlayerTotals('onIceSavePercentage')">On-Ice SV%</th>
+    <th onclick="sortPlayerTotals('pdo')">PDO</th>
+  `;
+
   const rows = sortedEntries
-    .map(([player, stats]) => `
-      <tr>
-        <td>${player}</td>
+    .map(([player, stats]) => {
+      const simpleCells = `
+        <td>${getPlayerDisplayName(player)}</td>
+        <td>${stats.goals}</td>
+        <td>${stats.assists}</td>
+        <td>${stats.points}</td>
         <td>${stats.shots}</td>
         <td>${stats.shotAssists}</td>
-        <td>${stats.zoneEntries}</td>
-        <td>${stats.zoneExits}</td>
-        <td>${stats.carryEntries}</td>
-        <td>${stats.dumpEntries}</td>
-        <td>${stats.passEntries}</td>
-        <td>${stats.failedEntries}</td>
-        <td>${stats.carryExits}</td>
-        <td>${stats.dumpExits}</td>
-        <td>${stats.passExits}</td>
-        <td>${stats.failedExits}</td>
+        <td>${stats.controlledEntries}</td>
+        <td>${stats.controlledExits}</td>
+        <td>${stats.penalties}</td>
+        <td>${stats.drawnPenalties}</td>
         <td>${stats.onIceShotsFor}</td>
         <td>${stats.onIceShotsAgainst}</td>
         <td>${stats.shotDifferential}</td>
-        <td>${stats.goals}</td>
-        <td>${stats.primaryAssists}</td>
-        <td>${stats.secondaryAssists}</td>
-        <td>${stats.points}</td>
-        <td>${stats.penalties}</td>
-        <td>${stats.drawnPenalties}</td>
         <td>${stats.onIceGoalsFor}</td>
         <td>${stats.onIceGoalsAgainst}</td>
+        <td>${stats.onIceGoalDifferential}</td>
+      `;
+
+      const expandedCells = `
+        ${simpleCells}
+        <td>${stats.carryEntries}</td>
+        <td>${stats.passEntries}</td>
+        <td>${stats.dumpEntries}</td>
+        <td>${stats.failedEntries}</td>
+        <td>${stats.carryExits}</td>
+        <td>${stats.passExits}</td>
+        <td>${stats.dumpExits}</td>
+        <td>${stats.failedExits}</td>
+        <td>${stats.primaryAssists}</td>
+        <td>${stats.secondaryAssists}</td>
+        <td>${stats.penaltyDifferential}</td>
         <td>${stats.individualShootingPercentage}%</td>
         <td>${stats.onIceShootingPercentage}%</td>
         <td>${stats.onIceSavePercentage}%</td>
         <td>${stats.pdo}</td>
-      </tr>
-    `)
+      `;
+
+      return `
+        <tr>
+          ${view === "simple" ? simpleCells : expandedCells}
+        </tr>
+      `;
+    })
     .join("");
 
   playerTotals.innerHTML = `
     <table>
       <thead>
-  <tr>
-    <th onclick="sortPlayerTotals('player')">Player</th>
-    <th onclick="sortPlayerTotals('shots')">Shots</th>
-    <th onclick="sortPlayerTotals('shotAssists')">Shot Assists</th>
-    <th onclick="sortPlayerTotals('zoneEntries')">Zone Entries</th>
-    <th onclick="sortPlayerTotals('zoneExits')">Zone Exits</th>
-    <th onclick="sortPlayerTotals('carryEntries')">Carry Entries</th>
-    <th onclick="sortPlayerTotals('dumpEntries')">Dump Entries</th>
-    <th onclick="sortPlayerTotals('passEntries')">Pass Entries</th>
-    <th onclick="sortPlayerTotals('failedEntries')">Failed Entries</th>
-    <th onclick="sortPlayerTotals('carryExits')">Carry Exits</th>
-    <th onclick="sortPlayerTotals('dumpExits')">Dump Exits</th>
-    <th onclick="sortPlayerTotals('passExits')">Pass Exits</th>
-    <th onclick="sortPlayerTotals('failedExits')">Failed Exits</th>
-    <th onclick="sortPlayerTotals('onIceShotsFor')">On-Ice Shots For</th>
-    <th onclick="sortPlayerTotals('onIceShotsAgainst')">On-Ice Shots Against</th>
-    <th onclick="sortPlayerTotals('shotDifferential')">Shot Differential</th>
-    <th onclick="sortPlayerTotals('goals')">Goals</th>
-    <th onclick="sortPlayerTotals('primaryAssists')">Primary Assists</th>
-    <th onclick="sortPlayerTotals('secondaryAssists')">Secondary Assists</th>
-    <th onclick="sortPlayerTotals('points')">Points</th>
-    <th onclick="sortPlayerTotals('penalties')">Penalties</th>
-    <th onclick="sortPlayerTotals('drawnPenalties')">Drawn Penalties</th>
-    <th onclick="sortPlayerTotals('onIceGoalsFor')">On-Ice Goals For</th>
-    <th onclick="sortPlayerTotals('onIceGoalsAgainst')">On-Ice Goals Against</th>
-    <th onclick="sortPlayerTotals('individualShootingPercentage')">Individual SH%</th>
-    <th onclick="sortPlayerTotals('onIceShootingPercentage')">On-Ice SH%</th>
-    <th onclick="sortPlayerTotals('onIceSavePercentage')">On-Ice SV%</th>
-    <th onclick="sortPlayerTotals('pdo')">PDO</th>
-  </tr>
-</thead>
+        <tr>
+          ${view === "simple" ? simpleHeaders : expandedHeaders}
+        </tr>
+      </thead>
       <tbody>${rows}</tbody>
     </table>
   `;
@@ -516,6 +533,7 @@ function createEmptyPlayerStats() {
     controlledEntries: 0,
     controlledExits: 0,
     onIceGoalDifferential: 0,
+    penaltyDifferential: 0,
   };
 }
 
@@ -661,24 +679,21 @@ function renderSeasonPlayerCards() {
   playerCards.innerHTML = cards;
 }
 
-function populateSeasonCardPlayers() {
+function populateSeasonCardPlayerSelect() {
   const seasonId = seasonSelect.value;
+  const roster = getRoster(seasonId);
+  const totals = calculatePlayerTotals(getSeasonEvents(seasonId));
 
-  seasonCardPlayerSelect.innerHTML = `<option value="all">All Players</option>`;
-
-  if (!seasonId) {
-    return;
-  }
-
-  const seasonEvents = getSeasonEvents(seasonId);
-  const totals = calculatePlayerTotals(seasonEvents);
+  seasonCardPlayerSelect.innerHTML =
+    '<option value="all">All Players</option>';
 
   Object.keys(totals)
-    .sort((a, b) => a.localeCompare(b))
-    .forEach((player) => {
+    .sort((a, b) => Number(a) - Number(b))
+    .forEach(number => {
       const option = document.createElement("option");
-      option.value = player;
-      option.textContent = player;
+      option.value = number;
+      option.textContent =
+        `#${number} — ${roster[number] || "Unknown"}`;
       seasonCardPlayerSelect.appendChild(option);
     });
 }
@@ -747,7 +762,9 @@ function deleteRosterPlayer(number) {
 
   saveRoster(seasonId, roster);
   renderRoster();
-  populateSeasonCardPlayers();
+  populateSeasonCardPlayerSelect();
+  populateGameRosterPlayers();
+  populateShotMapPlayers();
 }
 
 addRosterPlayerBtn.addEventListener("click", () => {
@@ -758,10 +775,8 @@ addRosterPlayerBtn.addEventListener("click", () => {
     return;
   }
 
-  const playerNumber = gameRosterPlayer.value;
-  
-  const seasonRoster = getRoster(seasonId);
-  const playerName = seasonRoster[playerNumber];
+  const number = rosterNumber.value.trim();
+  const name = rosterName.value.trim();
 
   if (!number || !name) {
     alert("Please enter both player number and name.");
@@ -773,44 +788,47 @@ addRosterPlayerBtn.addEventListener("click", () => {
 
   saveRoster(seasonId, roster);
   renderRoster();
+  populateSeasonCardPlayerSelect();
+  populateGameRosterPlayers();
+  populateShotMapPlayers();
 
-  roster[playerNumber] = {
-  name: playerName,
-  position: gameRosterPosition.value,
-};
+  rosterNumber.value = "";
+  rosterName.value = "";
 });
 
 loadSeasonCardsBtn.addEventListener("click", renderSeasonPlayerCards);
 
-seasonSelect.addEventListener("change", () => {
-  populateGames();
-  populateSeasonCardPlayers();
-  renderRoster();
+shotMapType.addEventListener("change", () => {
+  shotMapSection.style.display = "block";
+  renderTeamShotMap();
 });
 
-shotMapType.addEventListener("change", () => {
-  if (!currentGameData) {
-    shotMapSection.style.display = "none";
-    shotMapDots.innerHTML = "";
-    return;
+function getGameDataForEvent(event) {
+  if (currentGameData && currentGameData.gameId === event.gameId) {
+    return currentGameData;
   }
 
-  const filteredEvents = filterEventsBySituation(currentEvents);
-  shotMapSection.style.display = "block";
-  renderShotMap(filteredEvents);
-});
+  const savedGame = localStorage.getItem(
+    getGameStorageKey(seasonSelect.value, event.gameId)
+  );
+
+  return savedGame ? JSON.parse(savedGame) : null;
+}
 
 function shouldFlipShot(event) {
+  // Database-backed events carry their own attack direction directly
+  // (via a join at fetch time), so they can skip the localStorage lookup.
+  const period1Direction = event._period1AttackDirection
+    || getGameDataForEvent(event)?.period1AttackDirection
+    || "right";
   const period = String(event.period);
-  const period1Direction =
-    currentGameData?.period1AttackDirection || "right";
 
-  const attackingRight =
+  const ourTeamAttackingRight =
     period === "1" || period === "3" || period === "OT"
       ? period1Direction === "right"
       : period1Direction === "left";
 
-  return !attackingRight;
+  return !ourTeamAttackingRight;
 }
 
 function normalizeShotCoordinates(event) {
@@ -936,6 +954,18 @@ function getYouTubeVideoId(url) {
 }
 
 function showShotClip(event) {
+  // Database-backed event: the video URL was already joined in when the
+  // shot map data was fetched, so this skips the localStorage lookup below.
+  if (event.videoUrl) {
+    const videoId = getYouTubeVideoId(event.videoUrl);
+    const startTime = Math.max(0, Math.floor(Number(event.videoTime || 0) - 10));
+
+    shotVideoFrame.src =
+      `https://www.youtube.com/embed/${videoId}?start=${startTime}&autoplay=1`;
+    shotVideoSection.style.display = "block";
+    return;
+  }
+
   let gameData = currentGameData;
 
   if (!gameData || gameData.gameId !== event.gameId) {
@@ -1108,33 +1138,33 @@ function showPanel(panelId) {
 
   document.getElementById(panelId).style.display = "block";
 
+
   if (panelId === "shotMapPanel") {
-    if (currentGameData) {
-      shotMapSection.style.display = "block";
-      const filteredEvents = filterEventsBySituation(currentEvents);
-      renderShotMap(filteredEvents);
-    } else {
-      shotMapSection.style.display = "none";
-      shotMapDots.innerHTML = "";
-    }
+  shotMapSection.style.display = "block";
+  renderTeamShotMap();
+
+  // Database-backed data, if already loaded, takes priority over the
+  // local render just above.
+  if (dbEventsForShotMap.length > 0) {
+    renderDbShotMap();
+  }
   }
 
+  if (panelId === "summaryPanel") {
+  renderSummary();
+}
+
   if (panelId === "playerTotalsPanel") {
-    const filteredEvents = filterEventsBySituation(currentEvents);
-    renderPlayerTotals(filteredEvents);
+    renderPlayerTotals(getPlayerTotalsEvents());
+
+    // Database-backed data, if already loaded, takes priority over the
+    // local render just above.
+    if (dbEventsForPlayerTotals.length > 0) {
+      renderDbPlayerTotals();
+    }
   }
 }
 
-seasonSelect.addEventListener("change", () => {
-  const dashboardContent = document.getElementById("dashboardContent");
-
-  if (seasonSelect.value) {
-    dashboardContent.style.display = "block";
-    refreshGamesDropdown();
-  } else {
-    dashboardContent.style.display = "none";
-  }
-});
 
 seasonSelect.addEventListener("change", () => {
   const dashboardContent = document.getElementById("dashboardContent");
@@ -1146,23 +1176,23 @@ seasonSelect.addEventListener("change", () => {
 
   dashboardContent.style.display = "block";
 
-  populateGames();
-  populateSeasonCardPlayers();
-  renderRoster();
-  showPanel("summaryPanel");
+  
   populateGameRosterGames();
   populateGameRosterPlayers();
   populateLineComboGames();
-});
+  populateShotMapGames();
+  populateShotMapPlayers();
+  renderRoster();
+  populateSummaryGames();
+  populatePlayerTotalsGames();
+  populateSeasonCardPlayerSelect();
 
-gameSelect.addEventListener("change", () => {
-  if (!seasonSelect.value || !gameSelect.value) {
-    return;
-  }
+  currentEvents = getSeasonEvents(seasonSelect.value);
 
-  loadGameData();
   showPanel("summaryPanel");
 });
+
+
 
 function getGameRosterKey(seasonId, gameId) {
   return `hockey-game-roster-${seasonId}-${gameId}`;
@@ -1228,8 +1258,7 @@ function editGameRosterPlayer(number) {
   const gameId = gameRosterGameSelect.value;
   const roster = getGameRoster(seasonId, gameId);
 
-  gameRosterNumber.value = number;
-  gameRosterName.value = roster[number].name;
+  gameRosterPlayer.value = number;
   gameRosterPosition.value = roster[number].position;
 }
 
@@ -1248,7 +1277,7 @@ function deleteGameRosterPlayer(number) {
   renderGameRoster();
 }
 
-gameRosterGameSelect.addEventListener("change", renderGameRoster);
+//gameRosterGameSelect.addEventListener("change", renderGameRoster);
 
 addGameRosterPlayerBtn.addEventListener("click", () => {
   const seasonId = seasonSelect.value;
@@ -1272,8 +1301,7 @@ addGameRosterPlayerBtn.addEventListener("click", () => {
   saveGameRoster(seasonId, gameId, roster);
   renderGameRoster();
 
-  gameRosterNumber.value = "";
-  gameRosterName.value = "";
+  gameRosterPlayer.value = "";
   gameRosterPosition.value = "forward";
 });
 
@@ -1555,4 +1583,559 @@ function renderLineComboTable(rows) {
   `;
 }
 
+function showShotMapMode(mode) {
+  if (mode === "team") {
+    // for now, keep using your current team shot map
+    const filteredEvents = filterEventsBySituation(currentEvents);
+    renderShotMap(filteredEvents);
+  }
+
+  if (mode === "player") {
+    // placeholder for next step
+    shotMapDots.innerHTML = "";
+  }
+}
+
+function populateShotMapGames() {
+  const seasonId = seasonSelect.value;
+  const savedGames = getSavedGames();
+
+  shotMapGameSelect.innerHTML = `<option value="all" selected>All Games</option>`;
+
+  savedGames
+    .filter((game) => game.seasonId === seasonId)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      shotMapGameSelect.appendChild(option);
+    });
+}
+
+function getTeamShotMapEvents() {
+  const seasonId = seasonSelect.value;
+  const selectedGames = Array.from(shotMapGameSelect.selectedOptions).map(
+    (option) => option.value
+  );
+
+  let events = getSeasonEvents(seasonId);
+
+  if (!selectedGames.includes("all")) {
+    events = events.filter((event) => selectedGames.includes(event.gameId));
+  }
+
+  const selectedPlayers = Array.from(shotMapPlayerSelect.selectedOptions).map(
+  (option) => option.value
+);
+
+if (!selectedPlayers.includes("all")) {
+  events = events.filter((event) => {
+    if (shotMapType.value === "for") {
+      return selectedPlayers.includes(event.player);
+    }
+
+    if (shotMapType.value === "against") {
+      return parsePlayerList(event.shotAgainstPlayers || "").some((player) =>
+        selectedPlayers.includes(player)
+      );
+    }
+
+    return true;
+  });
+}
+
+  return filterEventsByShotMapSituation(events);
+}
+
+function filterEventsByShotMapSituation(events) {
+  const selectedSituation = shotMapSituation.value;
+
+  const evenStrength = ["5v5", "4v4", "3v3"];
+  const powerPlay = ["5v4", "5v3", "4v3", "6v5", "6v4", "6v3"];
+  const shorthanded = ["4v5", "3v5", "3v4", "5v6", "4v6", "3v6"];
+
+  if (selectedSituation === "all") return events;
+  if (selectedSituation === "even") {
+    return events.filter((event) => evenStrength.includes(event.situation));
+  }
+  if (selectedSituation === "powerplay") {
+    return events.filter((event) => powerPlay.includes(event.situation));
+  }
+  if (selectedSituation === "shorthanded") {
+    return events.filter((event) => shorthanded.includes(event.situation));
+  }
+
+  return events.filter((event) => event.situation === selectedSituation);
+}
+
+function renderTeamShotMap() {
+  const events = getTeamShotMapEvents();
+  renderShotMap(events);
+}
+
+function showShotMapMode(mode) {
+  if (mode === "team") {
+    renderTeamShotMap();
+  }
+
+  if (mode === "player") {
+    shotMapDots.innerHTML = "";
+  }
+}
+
+function populateShotMapPlayers() {
+  const seasonId = seasonSelect.value;
+  const roster = getRoster(seasonId);
+
+  shotMapPlayerSelect.innerHTML = `<option value="all" selected>All Players</option>`;
+
+  Object.entries(roster)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .forEach(([number, name]) => {
+      const option = document.createElement("option");
+      option.value = number;
+      option.textContent = `#${number} ${name}`;
+      shotMapPlayerSelect.appendChild(option);
+    });
+}
+
+function populateSummaryGames() {
+  const seasonId = seasonSelect.value;
+  const savedGames = getSavedGames();
+
+  summaryGameSelect.innerHTML = `<option value="all">All Games</option>`;
+
+  savedGames
+    .filter((game) => game.seasonId === seasonId)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      summaryGameSelect.appendChild(option);
+    });
+}
+
+function renderSummary() {
+  const seasonId = seasonSelect.value;
+  const selectedGame = summaryGameSelect.value;
+
+  let events = getSeasonEvents(seasonId);
+
+  if (selectedGame !== "all") {
+    events = events.filter((event) => event.gameId === selectedGame);
+  }
+
+  summary.innerHTML = `
+    <p><strong>Season:</strong> ${seasonId}</p>
+    <p><strong>Game:</strong> ${selectedGame === "all" ? "All Games" : selectedGame}</p>
+    <p><strong>Total Events:</strong> ${events.length}</p>
+    <p><strong>Shots:</strong> ${
+      events.filter((event) => event.eventType === "shot" || event.eventType === "goal").length
+    }</p>
+    <p><strong>Opponent Shots:</strong> ${
+      events.filter((event) => event.eventType === "opponent_shot" || event.eventType === "opponent_goal").length
+    }</p>
+    <p><strong>Zone Entries:</strong> ${
+      events.filter((event) => event.eventType === "zone_entry").length
+    }</p>
+    <p><strong>Zone Exits:</strong> ${
+      events.filter((event) => event.eventType === "zone_exit").length
+    }</p>
+  `;
+}
+
+function populatePlayerTotalsGames() {
+  const seasonId = seasonSelect.value;
+  const savedGames = getSavedGames();
+
+  playerTotalsGameSelect.innerHTML = `<option value="all">All Games</option>`;
+
+  savedGames
+    .filter((game) => game.seasonId === seasonId)
+    .forEach((game) => {
+      const option = document.createElement("option");
+      option.value = game.gameId;
+      option.textContent = game.gameId;
+      playerTotalsGameSelect.appendChild(option);
+    });
+}
+
+function getPlayerTotalsEvents() {
+  const seasonId = seasonSelect.value;
+  const selectedGame = playerTotalsGameSelect.value;
+
+  let events = getSeasonEvents(seasonId);
+
+  if (selectedGame !== "all") {
+    events = events.filter((event) => event.gameId === selectedGame);
+  }
+
+  return filterEventsBySituation(events);
+}
+
+function getPlayerDisplayName(playerNumber) {
+  // Database-backed totals already arrive as a fully-formatted
+  // "#19 — Name" label (resolved during normalization), so pass
+  // those straight through instead of re-looking them up locally.
+  if (typeof playerNumber === "string" && playerNumber.startsWith("#") && playerNumber.includes("—")) {
+    return playerNumber;
+  }
+
+  const roster = getRoster(seasonSelect.value);
+  const name = roster[playerNumber] || "";
+
+  return name ? `#${playerNumber} ${name}` : `#${playerNumber}`;
+}
+
+shotMapPlayerSelect.addEventListener("change", renderTeamShotMap);
+shotMapType.addEventListener("change", renderTeamShotMap);
+shotMapSituation.addEventListener("change", renderTeamShotMap);
+shotMapGameSelect.addEventListener("change", renderTeamShotMap);
+summaryGameSelect.addEventListener("change", renderSummary);
+playerTotalsGameSelect.addEventListener("change", () => {
+  renderPlayerTotals(getPlayerTotalsEvents());
+});
+
+situationFilter.addEventListener("change", () => {
+  renderPlayerTotals(getPlayerTotalsEvents());
+});
+playerTotalsView.addEventListener("change", () => {
+  renderPlayerTotals(getPlayerTotalsEvents());
+});
+
 populateSeasons();
+
+// ============================================================
+// Database-backed shot map (added on top of everything above --
+// none of the localStorage-driven code elsewhere in this file was
+// changed to make room for this, aside from the two small additions
+// to shouldFlipShot and showShotClip further up).
+// ============================================================
+
+async function loadSeasonsFromDatabase(teamId) {
+  const { data, error } = await supabaseClient
+    .from("seasons")
+    .select("id, label")
+    .eq("team_id", teamId)
+    .order("label");
+
+  if (error) {
+    console.error("Could not load seasons:", error.message);
+    return;
+  }
+
+  loadedSeasons = data;
+
+  data.forEach((season) => {
+    // Only add it if a local-only season isn't already sitting at this
+    // same label -- avoids showing the same season name twice.
+    const alreadyThere = Array.from(seasonSelect.options).some(
+      (option) => option.value === season.label
+    );
+
+    if (!alreadyThere) {
+      const option = document.createElement("option");
+      option.value = season.label;
+      option.textContent = season.label;
+      seasonSelect.appendChild(option);
+    }
+  });
+}
+
+// Turns a raw database event row into the same shape renderShotMap()
+// already expects, so that function -- along with normalizeShotCoordinates,
+// shouldFlipShot, and showShotClip -- can be reused completely unchanged.
+function normalizeDbEventForShotMap(dbEvent, rosterLookup) {
+  const resolveOne = (id) => (id ? rosterLookup[id] || "" : "");
+  const resolveMany = (ids) =>
+    (ids || [])
+      .map((id) => rosterLookup[id] || "")
+      .filter(Boolean)
+      .join(", ");
+
+  return {
+    gameId: dbEvent.game_id,
+    eventType: dbEvent.event_type,
+    period: dbEvent.period,
+    time: dbEvent.time_in_period,
+    situation: dbEvent.situation,
+    x: dbEvent.x,
+    y: dbEvent.y,
+    player: resolveOne(dbEvent.player_id),
+    shotAssist: resolveOne(dbEvent.shot_assist_player_id),
+    primaryAssist: resolveOne(dbEvent.primary_assist_player_id),
+    secondaryAssist: resolveOne(dbEvent.secondary_assist_player_id),
+    playersOnIce: resolveMany(dbEvent.players_on_ice_for),
+    shotAgainstPlayers: resolveMany(dbEvent.players_on_ice_against),
+    videoUrl: dbEvent.game_videos ? dbEvent.game_videos.url : null,
+    videoTime: dbEvent.video_time,
+    _period1AttackDirection: dbEvent.games?.period1_attack_direction || "right",
+  };
+}
+
+async function loadGamesForShotMapFilter(seasonId) {
+  const { data, error } = await supabaseClient
+    .from("games")
+    .select("id, game_date, opponents(name)")
+    .eq("season_id", seasonId)
+    .order("game_date");
+
+  if (error) {
+    console.error("Could not load games for the shot map filter:", error.message);
+    return;
+  }
+
+  shotMapGameSelect.innerHTML = `<option value="all" selected>All Games</option>`;
+
+  data.forEach((game) => {
+    const opponentText = game.opponents ? ` vs ${game.opponents.name}` : "";
+    const option = document.createElement("option");
+    option.value = game.id;
+    option.textContent = `${game.game_date || "(no date)"}${opponentText}`;
+    shotMapGameSelect.appendChild(option);
+  });
+}
+
+// Reuses the exact same "#19 -- Name" labels already resolved for the
+// dots themselves, so an option's value always matches an event's
+// player field exactly.
+function loadPlayersForShotMapFilter(rosterLookup) {
+  shotMapPlayerSelect.innerHTML = `<option value="all" selected>All Players</option>`;
+
+  Object.values(rosterLookup)
+    .sort()
+    .forEach((label) => {
+      const option = document.createElement("option");
+      option.value = label;
+      option.textContent = label;
+      shotMapPlayerSelect.appendChild(option);
+    });
+}
+
+async function loadAndRenderDbShotMap() {
+  const seasonLabel = seasonSelect.value;
+  const season = loadedSeasons.find((s) => s.label === seasonLabel);
+
+  // No matching database season for whatever's selected -- most likely
+  // a season that only ever existed locally. Leave things as they are
+  // rather than clearing out a working local shot map.
+  if (!season) {
+    return;
+  }
+
+  const rosterLookup = await buildRosterLookup(season.id);
+
+  await loadGamesForShotMapFilter(season.id);
+  loadPlayersForShotMapFilter(rosterLookup);
+
+  const { data, error } = await supabaseClient
+    .from("events")
+    .select("*, games!inner(period1_attack_direction, season_id), game_videos(url)")
+    .eq("games.season_id", season.id);
+
+  if (error) {
+    console.error("Could not load database events for shot map:", error.message);
+    return;
+  }
+
+  dbEventsForShotMap = data.map((event) => normalizeDbEventForShotMap(event, rosterLookup));
+
+  shotMapSection.style.display = "block";
+  renderDbShotMap();
+}
+
+function renderDbShotMap() {
+  let events = dbEventsForShotMap;
+
+  const selectedGames = Array.from(shotMapGameSelect.selectedOptions).map(
+    (option) => option.value
+  );
+
+  if (!selectedGames.includes("all")) {
+    events = events.filter((event) => selectedGames.includes(event.gameId));
+  }
+
+  const selectedPlayers = Array.from(shotMapPlayerSelect.selectedOptions).map(
+    (option) => option.value
+  );
+
+  if (!selectedPlayers.includes("all")) {
+    events = events.filter((event) => {
+      if (shotMapType.value === "for") {
+        return selectedPlayers.includes(event.player);
+      }
+
+      if (shotMapType.value === "against") {
+        return parsePlayerList(event.shotAgainstPlayers || "").some((player) =>
+          selectedPlayers.includes(player)
+        );
+      }
+
+      return true;
+    });
+  }
+
+  const filtered = filterEventsByShotMapSituation(events);
+  renderShotMap(filtered);
+}
+
+shotMapGameSelect.addEventListener("change", () => {
+  if (dbEventsForShotMap.length > 0) {
+    renderDbShotMap();
+  }
+});
+
+shotMapPlayerSelect.addEventListener("change", () => {
+  if (dbEventsForShotMap.length > 0) {
+    renderDbShotMap();
+  }
+});
+
+seasonSelect.addEventListener("change", loadAndRenderDbShotMap);
+
+shotMapType.addEventListener("change", () => {
+  if (dbEventsForShotMap.length > 0) {
+    renderDbShotMap();
+  }
+});
+
+shotMapSituation.addEventListener("change", () => {
+  if (dbEventsForShotMap.length > 0) {
+    renderDbShotMap();
+  }
+});
+
+// ============================================================
+// Database-backed Player Totals (same reuse approach as the shot
+// map above: calculatePlayerTotals and renderPlayerTotals are used
+// completely unchanged, this just feeds them real, name-resolved data).
+// ============================================================
+
+async function buildRosterLookup(seasonId) {
+  const { data, error } = await supabaseClient
+    .from("roster_players")
+    .select("id, jersey_number, name")
+    .eq("season_id", seasonId);
+
+  if (error) {
+    console.error("Could not load roster for player totals:", error.message);
+    return {};
+  }
+
+  const lookup = {};
+  data.forEach((player) => {
+    lookup[player.id] = `#${player.jersey_number} — ${player.name}`;
+  });
+
+  return lookup;
+}
+
+// Unlike the shot map's normalizer, this one resolves player IDs to
+// real "#19 — Name" labels (via the roster lookup above), since
+// calculatePlayerTotals uses the player field as its grouping key --
+// a raw UUID or a stub like "Yes" wouldn't be usable there.
+function normalizeDbEventForPlayerTotals(dbEvent, rosterLookup) {
+  const resolveOne = (id) => (id ? rosterLookup[id] || "" : "");
+  const resolveMany = (ids) =>
+    (ids || [])
+      .map((id) => rosterLookup[id] || "")
+      .filter(Boolean)
+      .join(", ");
+
+  return {
+    player: resolveOne(dbEvent.player_id),
+    gameId: dbEvent.game_id,
+    eventType: dbEvent.event_type,
+    entryExitType: dbEvent.entry_exit_type,
+    situation: dbEvent.situation,
+    shotAssist: resolveOne(dbEvent.shot_assist_player_id),
+    primaryAssist: resolveOne(dbEvent.primary_assist_player_id),
+    secondaryAssist: resolveOne(dbEvent.secondary_assist_player_id),
+    playersOnIce: resolveMany(dbEvent.players_on_ice_for),
+    shotAgainstPlayers: resolveMany(dbEvent.players_on_ice_against),
+  };
+}
+
+async function loadGamesForPlayerTotalsFilter(seasonId) {
+  const { data, error } = await supabaseClient
+    .from("games")
+    .select("id, game_date, opponents(name)")
+    .eq("season_id", seasonId)
+    .order("game_date");
+
+  if (error) {
+    console.error("Could not load games for the player totals filter:", error.message);
+    return;
+  }
+
+  playerTotalsGameSelect.innerHTML = `<option value="all">All Games</option>`;
+
+  data.forEach((game) => {
+    const opponentText = game.opponents ? ` vs ${game.opponents.name}` : "";
+    const option = document.createElement("option");
+    option.value = game.id;
+    option.textContent = `${game.game_date || "(no date)"}${opponentText}`;
+    playerTotalsGameSelect.appendChild(option);
+  });
+}
+
+async function loadAndRenderDbPlayerTotals() {
+  const seasonLabel = seasonSelect.value;
+  const season = loadedSeasons.find((s) => s.label === seasonLabel);
+
+  if (!season) {
+    return;
+  }
+
+  await loadGamesForPlayerTotalsFilter(season.id);
+
+  const rosterLookup = await buildRosterLookup(season.id);
+
+  const { data, error } = await supabaseClient
+    .from("events")
+    .select("*, games!inner(season_id)")
+    .eq("games.season_id", season.id);
+
+  if (error) {
+    console.error("Could not load database events for player totals:", error.message);
+    return;
+  }
+
+  dbEventsForPlayerTotals = data.map((event) =>
+    normalizeDbEventForPlayerTotals(event, rosterLookup)
+  );
+
+  renderDbPlayerTotals();
+}
+
+function renderDbPlayerTotals() {
+  const selectedGame = playerTotalsGameSelect.value;
+
+  const eventsForGame =
+    selectedGame && selectedGame !== "all"
+      ? dbEventsForPlayerTotals.filter((event) => event.gameId === selectedGame)
+      : dbEventsForPlayerTotals;
+
+  const filtered = filterEventsBySituation(eventsForGame);
+  renderPlayerTotals(filtered);
+}
+
+playerTotalsGameSelect.addEventListener("change", () => {
+  if (dbEventsForPlayerTotals.length > 0) {
+    renderDbPlayerTotals();
+  }
+});
+
+seasonSelect.addEventListener("change", loadAndRenderDbPlayerTotals);
+
+situationFilter.addEventListener("change", () => {
+  if (dbEventsForPlayerTotals.length > 0) {
+    renderDbPlayerTotals();
+  }
+});
+
+playerTotalsView.addEventListener("change", () => {
+  if (dbEventsForPlayerTotals.length > 0) {
+    renderDbPlayerTotals();
+  }
+});
